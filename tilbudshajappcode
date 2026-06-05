@@ -1,0 +1,1205 @@
+bash
+
+cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="theme-color" content="#2a7d2e"/>
+  <title>TilbudsHaj</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --g:#2a7d2e; --gd:#1b5c1e; --gl:#f0f8f0;
+      --y:#f0c000; --yl:#fffbea;
+      --w:#ffffff; --b:#e0e8e0;
+      --t:#1a1a1a; --s:#5a6e5a; --m:#8a9e8a; --r:#d42b2b;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{background:#fff;min-height:100vh;font-family:'DM Sans',sans-serif;-webkit-text-size-adjust:100%;}
+    ::-webkit-scrollbar{display:none;}
+    button{-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif;}
+    input,select{font-size:16px!important;font-family:'DM Sans',sans-serif;}
+    input::placeholder{color:#bbb;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;flex-shrink:0;}
+    .spinner.dark{border-color:rgba(42,125,46,0.2);border-top-color:var(--g);}
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// KONFIGURATION
+// ════════════════════════════════════════════════════════════════
+const SUPABASE_URL  = "https://DIN_PROJEKT_ID.supabase.co";   // ← udfyld
+const SUPABASE_ANON = "din_anon_noegle_her";                  // ← udfyld
+const ADMIN_PW      = "maxx1331-71920303aA";
+
+// ════════════════════════════════════════════════════════════════
+// SUPABASE API
+// ════════════════════════════════════════════════════════════════
+const SB = {
+  h: () => ({
+    "apikey": SUPABASE_ANON,
+    "Authorization": "Bearer " + SUPABASE_ANON,
+    "Content-Type": "application/json"
+  }),
+  async getDeals() {
+    try {
+      const r = await fetch(SUPABASE_URL + "/rest/v1/deals?select=*&order=savings.desc", {headers: this.h()});
+      return r.ok ? r.json() : null;
+    } catch { return null; }
+  },
+  async getMeta() {
+    try {
+      const r = await fetch(SUPABASE_URL + "/rest/v1/meta?select=*&limit=1", {headers: this.h()});
+      if (!r.ok) return null;
+      const d = await r.json();
+      return d[0] || null;
+    } catch { return null; }
+  },
+  async upsertDeals(deals, store) {
+    await fetch(SUPABASE_URL + "/rest/v1/deals?store=eq." + encodeURIComponent(store),
+      {method:"DELETE", headers:this.h()});
+    const r = await fetch(SUPABASE_URL + "/rest/v1/deals",
+      {method:"POST", headers:{...this.h(), "Prefer":"return=minimal"}, body:JSON.stringify(deals)});
+    return r.ok;
+  },
+  async upsertMeta(meta) {
+    await fetch(SUPABASE_URL + "/rest/v1/meta", {method:"DELETE", headers:this.h()});
+    await fetch(SUPABASE_URL + "/rest/v1/meta",
+      {method:"POST", headers:{...this.h(), "Prefer":"return=minimal"}, body:JSON.stringify([meta])});
+  },
+  async deleteStore(store) {
+    await fetch(SUPABASE_URL + "/rest/v1/deals?store=eq." + encodeURIComponent(store),
+      {method:"DELETE", headers:this.h()});
+  }
+};
+
+// ════════════════════════════════════════════════════════════════
+// HJÆLPEFUNKTIONER
+// ════════════════════════════════════════════════════════════════
+function fmt(p) {
+  if (typeof p !== "number" || isNaN(p)) return "–";
+  return Number.isInteger(p) ? p + ",-" : p.toFixed(2).replace(".",",") + " kr";
+}
+function getWeek(d = new Date()) {
+  const dt = new Date(d); dt.setHours(0,0,0,0);
+  dt.setDate(dt.getDate() + 3 - ((dt.getDay()+6)%7));
+  const w = new Date(dt.getFullYear(),0,4);
+  return 1 + Math.round(((dt-w)/86400000 - 3 + ((w.getDay()+6)%7))/7);
+}
+function dkDate(d = new Date()) {
+  return d.toLocaleDateString("da-DK", {day:"numeric",month:"long",year:"numeric"});
+}
+function isAdminLoggedIn() { return sessionStorage.getItem("th_admin") === "1"; }
+function extractJSON(text) {
+  const clean = text.replace(/```json|```/g,"").trim();
+  const m = clean.match(/\[[\s\S]*\]/);
+  if (!m) throw new Error("Ingen JSON fundet i svaret");
+  return JSON.parse(m[0]);
+}
+async function callAI(messages, tools) {
+  const body = {model:"claude-sonnet-4-20250514", max_tokens:1000, messages};
+  if (tools) body.tools = tools;
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error("API fejl: " + r.status);
+  const d = await r.json();
+  return (d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+}
+const AI_PROMPT = store =>
+  `Du er ekspert i danske tilbudsaviser. Udtræk ALLE produkter fra "${store}". Svar KUN med JSON array, ingen backticks:\n` +
+  `[{"name":"Navn","desc":"mængde","price":19.95,"origPrice":29.95,"unit":"500 g","unitPrice":"39,90 kr/kg","savings":10,"cat":"Kød","emoji":"🥩"}]\n` +
+  `Kategorier: Kød Mejeri Grønt Fisk Kolonial Hygiejne Rengøring Drikkevarer Andet. price/origPrice=tal. savings=Math.round(origPrice-price).`;
+
+// ════════════════════════════════════════════════════════════════
+// DEMO DATA
+// ════════════════════════════════════════════════════════════════
+const DEMO = [
+  {id:"d1",store:"Rema 1000",name:"Hakket Oksekød",desc:"500 g, dansk",emoji:"🥩",price:25,origPrice:39,unit:"500 g",unitPrice:"50 kr/kg",savings:14,cat:"Kød"},
+  {id:"d2",store:"Rema 1000",name:"Kyllingefilet",desc:"400 g, dansk",emoji:"🍗",price:20,origPrice:31,unit:"400 g",unitPrice:"50 kr/kg",savings:11,cat:"Kød"},
+  {id:"d3",store:"Rema 1000",name:"Ribbenssteg",desc:"600 g m. svær",emoji:"🥓",price:29,origPrice:45,unit:"600 g",unitPrice:"48 kr/kg",savings:16,cat:"Kød"},
+  {id:"d4",store:"Rema 1000",name:"Arla Letmælk",desc:"1 liter, frisk",emoji:"🥛",price:8.95,origPrice:12,unit:"1 l",unitPrice:"8,95 kr/l",savings:3,cat:"Mejeri"},
+  {id:"d5",store:"Netto",name:"Lurpak Smør",desc:"200 g, alle var.",emoji:"🧈",price:12,origPrice:22,unit:"200 g",unitPrice:"60 kr/kg",savings:10,cat:"Mejeri"},
+  {id:"d6",store:"Netto",name:"Danske Frilandsæg",desc:"10 stk",emoji:"🥚",price:19.95,origPrice:28,unit:"10 stk",unitPrice:"2 kr/stk",savings:8,cat:"Mejeri"},
+  {id:"d7",store:"Netto",name:"Havregryn",desc:"500 g, grovvalsede",emoji:"🥣",price:7.95,origPrice:12.95,unit:"500 g",unitPrice:"15,90 kr/kg",savings:5,cat:"Kolonial"},
+  {id:"d8",store:"Lidl",name:"Laksesteak",desc:"300 g, norsk",emoji:"🐟",price:29.95,origPrice:45,unit:"300 g",unitPrice:"99,83 kr/kg",savings:15,cat:"Fisk"},
+  {id:"d9",store:"Lidl",name:"Smør u. salt",desc:"250 g, Landkrone",emoji:"🧈",price:14.95,origPrice:22,unit:"250 g",unitPrice:"59,80 kr/kg",savings:7,cat:"Mejeri"},
+  {id:"d10",store:"Lidl",name:"Friske Champignon",desc:"500 g bakke",emoji:"🍄",price:12.95,origPrice:19,unit:"500 g",unitPrice:"25,90 kr/kg",savings:6,cat:"Grønt"},
+  {id:"d11",store:"Bilka",name:"Coca-Cola",desc:"24 x 33 cl dåser",emoji:"🥤",price:69,origPrice:99,unit:"24 stk",unitPrice:"2,88 kr/stk",savings:30,cat:"Drikkevarer"},
+  {id:"d12",store:"Bilka",name:"Oksemørbrad",desc:"Dansk, ca. 400 g",emoji:"🥩",price:59.95,origPrice:89,unit:"400 g",unitPrice:"149,88 kr/kg",savings:29,cat:"Kød"},
+  {id:"d13",store:"Bilka",name:"Arla Skyr",desc:"500 g bæger",emoji:"🍶",price:14.95,origPrice:22,unit:"500 g",unitPrice:"29,90 kr/kg",savings:7,cat:"Mejeri"},
+  {id:"d14",store:"Meny",name:"Havarti 45+",desc:"500 g, skiver",emoji:"🧀",price:27.95,origPrice:39,unit:"500 g",unitPrice:"55,90 kr/kg",savings:11,cat:"Mejeri"},
+  {id:"d15",store:"Meny",name:"Lurpak Smør",desc:"150-200 g",emoji:"🧈",price:12,origPrice:22,unit:"200 g",unitPrice:"60 kr/kg",savings:10,cat:"Mejeri"},
+  {id:"d16",store:"Føtex",name:"Hamburgerryg",desc:"Ca. 800 g, dansk",emoji:"🥩",price:34.95,origPrice:52,unit:"800 g",unitPrice:"43,69 kr/kg",savings:17,cat:"Kød"},
+  {id:"d17",store:"Føtex",name:"Kaffe Merrild",desc:"500 g formalet",emoji:"☕",price:39.95,origPrice:59,unit:"500 g",unitPrice:"79,90 kr/kg",savings:19,cat:"Kolonial"},
+  {id:"d18",store:"SuperBrugsen",name:"Danbo Ost 45+",desc:"500 g, dansk",emoji:"🧀",price:24.95,origPrice:36,unit:"500 g",unitPrice:"49,90 kr/kg",savings:11,cat:"Mejeri"},
+  {id:"d19",store:"SuperBrugsen",name:"Matilde Kakaomælk",desc:"1 liter",emoji:"🍫",price:8,origPrice:13,unit:"1 l",unitPrice:"8 kr/l",savings:5,cat:"Mejeri"},
+  {id:"d20",store:"Aldi",name:"Jordbær",desc:"500 g bakke, dansk",emoji:"🍓",price:19.95,origPrice:30,unit:"500 g",unitPrice:"39,90 kr/kg",savings:10,cat:"Grønt"},
+  {id:"d21",store:"Aldi",name:"Mozzarella",desc:"2 x 125 g, frisk",emoji:"🧀",price:12.95,origPrice:20,unit:"250 g",unitPrice:"51,80 kr/kg",savings:7,cat:"Mejeri"},
+  {id:"d22",store:"Kvickly",name:"Hakket Kalvekød",desc:"400 g, dansk",emoji:"🥩",price:32.95,origPrice:48,unit:"400 g",unitPrice:"82,38 kr/kg",savings:15,cat:"Kød"},
+  {id:"d23",store:"Kvickly",name:"Gulerødder",desc:"1 kg, danske",emoji:"🥕",price:6.95,origPrice:12,unit:"1 kg",unitPrice:"6,95 kr/kg",savings:5,cat:"Grønt"},
+  {id:"d24",store:"Coop 365",name:"Letmælk",desc:"1 liter",emoji:"🥛",price:7.95,origPrice:11,unit:"1 l",unitPrice:"7,95 kr/l",savings:3,cat:"Mejeri"},
+  {id:"d25",store:"Coop 365",name:"Toastbrød Fuldkorn",desc:"750 g",emoji:"🍞",price:14.95,origPrice:22,unit:"750 g",unitPrice:"19,93 kr/kg",savings:7,cat:"Kolonial"},
+  {id:"d26",store:"Coop 365",name:"Grillpølser",desc:"8 stk, svinekød",emoji:"🌭",price:19.95,origPrice:30,unit:"500 g",unitPrice:"39,90 kr/kg",savings:10,cat:"Kød"},
+  {id:"d27",store:"Spar",name:"Lurpak Smørbar",desc:"400 g",emoji:"🧈",price:22.95,origPrice:34,unit:"400 g",unitPrice:"57,38 kr/kg",savings:11,cat:"Mejeri"},
+  {id:"d28",store:"Spar",name:"Rødvin Rioja",desc:"75 cl, Spanien",emoji:"🍷",price:49.95,origPrice:75,unit:"75 cl",unitPrice:"66,60 kr/l",savings:25,cat:"Drikkevarer"},
+  {id:"d29",store:"Min Købmand",name:"Kødpålæg",desc:"200 g, dansk",emoji:"🥩",price:24.95,origPrice:36,unit:"200 g",unitPrice:"124 kr/kg",savings:11,cat:"Kød"},
+  {id:"d30",store:"Fakta",name:"Kartofler",desc:"2,5 kg, danske",emoji:"🥔",price:14.95,origPrice:22,unit:"2,5 kg",unitPrice:"5,98 kr/kg",savings:7,cat:"Grønt"},
+  {id:"d31",store:"Fakta",name:"Yoghurt naturel",desc:"1 kg, Arla",emoji:"🍶",price:12.95,origPrice:19,unit:"1 kg",unitPrice:"12,95 kr/kg",savings:6,cat:"Mejeri"},
+];
+
+const STORE_LIST = ["Meny","Rema 1000","Netto","SuperBrugsen","Lidl","Bilka","Føtex","Aldi","Kvickly","Coop 365","Spar","Min Købmand","Fakta"];
+const ADS = [
+  {brand:"Arla",tag:"Naturens bedste",emoji:"🐄",bg:"#1a3a6e"},
+  {brand:"Lurpak",tag:"Det ægte smør",emoji:"🧈",bg:"#8a6010"},
+  {brand:"Danish Crown",tag:"Dansk kvalitetskød",emoji:"🥩",bg:"#5a1010"},
+  {brand:"Carlsberg",tag:"Brygget siden 1847",emoji:"🍺",bg:"#0a3a0a"},
+  {brand:"Graasten",tag:"Syltetøj til familien",emoji:"🍓",bg:"#6a1a1a"},
+  {brand:"Matilde",tag:"Frisk dansk mælk",emoji:"🥛",bg:"#0a3a5a"},
+];
+
+// Smart søgning med ordgrænser
+const SYNS = {
+  "mælk":["mælk","letmælk","skummetmælk","minimælk","sødmælk","kefir"],
+  "æg":["æg"],"smør":["smør","smørbar","lurpak"],
+  "ost":["ost","havarti","danbo","mozzarella","brie"],
+  "kød":["kød","oksekød","svinekød","kalvekød","hakket","bøf","filet","mørbrad"],
+  "kylling":["kylling","kyllingefilet"],"fisk":["fisk","laks","torsk","tun","reje"],
+  "brød":["brød","toastbrød","rugbrød"],"kaffe":["kaffe","merrild"],
+  "yoghurt":["yoghurt","skyr","ymer"],"pasta":["pasta","spaghetti","penne"],
+};
+function scoreSearch(deal, tokens) {
+  if (!tokens.length) return 1;
+  const hay = [deal.name, deal.desc||"", deal.store, deal.cat||""].join(" ").toLowerCase().split(/[\s,\-\/]+/);
+  let tot = 0;
+  for (const t of tokens) {
+    const syns = SYNS[t] || [t]; let best = 0;
+    for (const s of syns) for (const w of hay) {
+      if (w===s) best=Math.max(best,3);
+      else if (w.startsWith(s)) best=Math.max(best,2);
+      else if (s.length>=3 && w.endsWith(s) && w!==s) best=Math.max(best,1.5);
+    }
+    if (deal.store.toLowerCase()===t) best=Math.max(best,3);
+    if (best===0) return 0;
+    tot+=best;
+  }
+  return tot;
+}
+
+// ════════════════════════════════════════════════════════════════
+// APP STATE
+// ════════════════════════════════════════════════════════════════
+const state = {
+  page: "customer",   // customer | admin-login | admin | meals
+  deals: [],
+  meta: null,
+  cart: [],
+  store: "Alle",
+  cat: "Alle",
+  sort: "savings",
+  search: "",
+  input: "",
+  suggs: [],
+  cartOpen: false,
+  loading: true,
+  // Admin state
+  adminStore: "",
+  adminMode: "file",
+  adminFiles: [],
+  adminUrl: "",
+  adminLoading: false,
+  adminLog: [],
+  adminSaved: [],
+  // Meals state
+  meals: [],
+  mealsLoading: false,
+  mealSelected: null,
+  mealMode: null,
+  // Logo taps
+  logoClicks: 0,
+  logoTimer: null,
+};
+
+// ════════════════════════════════════════════════════════════════
+// RENDER ENGINE
+// ════════════════════════════════════════════════════════════════
+function render() {
+  const app = document.getElementById("app");
+  if (state.page === "admin-login") { app.innerHTML = renderAdminLogin(); bindAdminLogin(); return; }
+  if (state.page === "admin") { app.innerHTML = renderAdmin(); bindAdmin(); return; }
+  if (state.page === "meals") { app.innerHTML = renderMeals(); bindMeals(); return; }
+  app.innerHTML = renderCustomer();
+  bindCustomer();
+}
+
+// ════════════════════════════════════════════════════════════════
+// CUSTOMER PAGE
+// ════════════════════════════════════════════════════════════════
+function getFiltered() {
+  const toks = state.search.toLowerCase().trim().split(/\s+/).filter(t=>t.length>1);
+  return state.deals
+    .filter(d => state.store==="Alle" || d.store===state.store)
+    .filter(d => state.cat==="Alle" || d.cat===state.cat)
+    .filter(d => !state.search || scoreSearch(d,toks)>0)
+    .sort((a,b)=>{
+      if(state.sort==="savings") return (b.savings||0)-(a.savings||0);
+      if(state.sort==="price")   return a.price-b.price;
+      if(state.sort==="pct"){
+        const pa=a.origPrice?(a.origPrice-a.price)/a.origPrice:0;
+        const pb=b.origPrice?(b.origPrice-b.price)/b.origPrice:0;
+        return pb-pa;
+      }
+      return a.name.localeCompare(b.name,"da");
+    });
+}
+
+function renderCustomer() {
+  const filtered = getFiltered();
+  const allStores = ["Alle",...new Set(state.deals.map(d=>d.store))];
+  const allCats = ["Alle",...new Set(state.deals.map(d=>d.cat).filter(Boolean))];
+  const totalInCart = state.cart.reduce((s,d)=>s+d.qty,0);
+  const ugeTekst = state.meta
+    ? `Tilbud fra butikkernes ugeaviser · Priser kan variere · Uge ${state.meta.week_num}-${state.meta.next_week}, ${state.meta.date_str}`
+    : "Tilbud fra butikkernes ugeaviser · Priser kan variere";
+
+  return `
+  <style>
+    .header{background:#fff;border-bottom:1px solid var(--b);position:sticky;top:0;z-index:50;box-shadow:0 1px 10px rgba(0,0,0,0.05);}
+    .header-inner{max-width:760px;margin:0 auto;padding:12px 13px 0;}
+    .logo-wrap{display:flex;align-items:center;gap:9px;}
+    .logo-icon{width:37px;height:37px;border-radius:9px;border:2px solid var(--g);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;flex-shrink:0;}
+    .logo-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:var(--g);letter-spacing:-.5px;line-height:1;}
+    .logo-sub{font-size:8px;color:var(--m);letter-spacing:1.8px;text-transform:uppercase;}
+    .btn-row{display:flex;align-items:center;gap:5px;}
+    .meal-btn{width:37px;height:37px;border-radius:9px;border:1.5px solid var(--b);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;transition:all .18s;}
+    .meal-btn:hover{background:var(--gl);border-color:var(--g);}
+    .cart-btn{background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:9px;transition:background .2s;}
+    .cart-btn:hover{background:var(--gl);}
+    .cart-badge{position:absolute;top:-6px;right:-6px;background:var(--y);color:#5a4000;width:16px;height:16px;border-radius:4px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+    .search-wrap{position:relative;margin-bottom:9px;}
+    .search-input{width:100%;padding:9px 30px 9px 28px;border:1.5px solid var(--b);border-radius:9px;font-size:16px;background:#fff;outline:none;color:var(--t);}
+    .search-input:focus{border-color:var(--g);}
+    .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--m);font-size:16px;padding:4px;line-height:1;}
+    .sugg-box{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border-radius:10px;border:1.5px solid var(--g);box-shadow:0 8px 24px rgba(42,125,46,0.14);z-index:200;overflow:hidden;}
+    .sugg-item{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--b);transition:background .12s;}
+    .sugg-item:last-child{border-bottom:none;}
+    .sugg-item:hover{background:var(--gl);}
+    .pills{display:flex;gap:5px;overflow-x:auto;padding-bottom:7px;-webkit-overflow-scrolling:touch;}
+    .pill{flex-shrink:0;padding:5px 12px;border-radius:20px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:700;font-size:11px;transition:all .15s;white-space:nowrap;}
+    .pill.active{background:var(--g);color:#fff;}
+    .pill.inactive{background:#f0f0f0;color:var(--m);}
+    .cat-pill{flex-shrink:0;padding:4px 11px;border-radius:20px;border:1.5px solid;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;transition:all .15s;white-space:nowrap;}
+    .cat-pill.active{border-color:var(--g);background:var(--gl);color:var(--g);font-weight:700;}
+    .cat-pill.inactive{border-color:var(--b);background:transparent;color:var(--m);font-weight:500;}
+    .sort-select{margin-left:auto;flex-shrink:0;font-size:11px;border:1px solid var(--b);border-radius:7px;padding:4px 7px;background:#fff;color:var(--m);cursor:pointer;outline:none;}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;}
+    .deal-card{background:#fff;border-radius:12px;border:4px solid var(--g);box-shadow:0 4px 18px rgba(42,125,46,0.12);position:relative;display:flex;flex-direction:column;overflow:visible;animation:fadeUp .3s ease both;transition:box-shadow .2s,transform .18s;cursor:default;}
+    .deal-card:hover{box-shadow:0 10px 30px rgba(42,125,46,0.2);transform:translateY(-3px);}
+    .deal-badge{position:absolute;top:-9px;left:10px;z-index:3;background:var(--y);color:#5a4000;font-family:'DM Sans',sans-serif;font-weight:700;font-size:10px;padding:2px 9px;border-radius:20px;box-shadow:0 2px 6px rgba(240,192,0,0.35);}
+    .deal-header{padding:9px 11px 0;display:flex;justify-content:space-between;align-items:center;}
+    .deal-store{font-family:'DM Sans',sans-serif;font-weight:700;font-size:10px;color:var(--g);letter-spacing:.8px;text-transform:uppercase;}
+    .deal-cat{font-size:9px;color:var(--m);}
+    .deal-divider{height:1px;background:var(--b);margin:7px 11px 0;}
+    .deal-body{padding:9px 11px 11px;flex:1;display:flex;flex-direction:column;gap:6px;}
+    .deal-emoji-box{width:38px;height:38px;flex-shrink:0;border-radius:8px;background:var(--gl);display:flex;align-items:center;justify-content:center;font-size:20px;}
+    .deal-name{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--t);line-height:1.25;margin-bottom:2px;}
+    .deal-desc{font-size:10px;color:var(--m);}
+    .deal-price{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:var(--g);line-height:1;}
+    .deal-orig{font-size:10px;color:#c0c8c0;text-decoration:line-through;}
+    .deal-unit{font-size:9px;background:#f5f5f5;color:var(--s);padding:2px 7px;border-radius:10px;border:1px solid var(--b);white-space:nowrap;}
+    .deal-unit-price{font-size:9px;background:var(--gl);color:var(--g);padding:2px 7px;border-radius:10px;font-weight:600;white-space:nowrap;}
+    .qty-wrap{display:flex;align-items:center;flex-shrink:0;}
+    .qty-btn{width:26px;height:26px;border:1.5px solid var(--g);background:#fff;cursor:pointer;color:var(--g);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;}
+    .qty-btn.minus{border-radius:5px 0 0 5px;border-right:none;}
+    .qty-btn.plus{border-radius:0 5px 5px 0;background:var(--g);color:#fff;font-size:17px;}
+    .qty-btn.plus.solo{border-radius:7px;}
+    .qty-btn.plus:hover{background:var(--gd);}
+    .qty-display{width:26px;height:26px;border:1.5px solid var(--g);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--g);}
+    .ad-banner{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--b);box-shadow:0 -2px 16px rgba(0,0,0,0.06);padding-top:6px;padding-bottom:10px;}
+    .ad-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 16px;scrollbar-width:none;cursor:grab;user-select:none;-webkit-overflow-scrolling:touch;}
+    .ad-card{flex-shrink:0;width:155px;height:54px;border-radius:10px;display:flex;align-items:center;gap:10px;padding:0 14px;position:relative;overflow:hidden;cursor:pointer;}
+    .cart-panel{position:fixed;top:0;right:0;bottom:0;width:min(380px,100vw);background:#fff;box-shadow:-4px 0 40px rgba(0,0,0,0.15);z-index:300;display:flex;flex-direction:column;animation:slideIn .25s ease;}
+    .cart-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:299;}
+    .cart-header{background:var(--g);padding:20px 18px 14px;flex-shrink:0;}
+    .cart-items{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch;}
+    .cart-store-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:7px;margin-bottom:7px;border-bottom:1.5px solid var(--b);}
+    .cart-store-dot{width:3px;height:16px;border-radius:2px;background:var(--g);}
+    .cart-item{display:flex;align-items:center;gap:8px;padding:7px 6px;border-radius:8px;transition:background .15s;}
+    .cart-item:hover{background:var(--gl);}
+    .cart-footer{flex-shrink:0;padding:12px 16px 16px;border-top:1px solid var(--b);}
+    .main-content{max-width:760px;margin:0 auto;padding:13px 11px 120px;background:#fff;min-height:100vh;}
+    .empty-search{text-align:center;padding:50px 20px;color:var(--m);}
+    .info-bar{margin-bottom:12px;}
+    .info-count{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--g);margin-bottom:2px;}
+    .info-text{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--m);font-style:italic;}
+    .top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  </style>
+
+  <!-- CART OVERLAY -->
+  ${state.cartOpen ? `<div class="cart-overlay" id="cartOverlay"></div>` : ""}
+
+  <!-- CART PANEL -->
+  ${state.cartOpen ? renderCartPanel() : ""}
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-inner">
+      <div class="top-row">
+        <div class="logo-wrap">
+          <div class="logo-icon" id="logoBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--g)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
+          <div>
+            <div class="logo-title">TilbudsHaj</div>
+            <div class="logo-sub">Uge ${state.meta ? state.meta.week_num+"-"+state.meta.next_week : "–"}</div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="meal-btn" id="mealBtn" title="Ugens retter">👨‍🍳</button>
+          <button class="cart-btn" id="cartBtn">
+            <div style="position:relative">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${totalInCart>0?"var(--g)":"#1a1a1a"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+              </svg>
+              ${totalInCart>0 ? `<div class="cart-badge">${totalInCart}</div>` : ""}
+            </div>
+            <div>
+              <div style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:${totalInCart>0?"var(--g)":"var(--t)"};line-height:1;">Min liste</div>
+              <div style="font-size:9px;color:var(--m)">${totalInCart} enheder</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- SØGEFELT -->
+      <div class="search-wrap">
+        <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2.5" stroke-linecap="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input class="search-input" id="searchInput" value="${escHtml(state.input)}" placeholder="Søg produkt eller butik..."/>
+        ${state.input ? `<button class="search-clear" id="searchClear">✕</button>` : ""}
+        ${state.suggs.length>0 ? `<div class="sugg-box" id="suggBox">
+          ${state.suggs.map((sg,i)=>`<div class="sugg-item" data-label="${escHtml(sg.label)}">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--g)" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--t)">${escHtml(sg.label)}</span>
+            </div>
+            <span style="font-size:10px;color:var(--m)">${escHtml(sg.store)}</span>
+          </div>`).join("")}
+        </div>` : ""}
+      </div>
+
+      <!-- BUTIK PILLS -->
+      <div class="pills" id="storePills">
+        ${allStores.map(s=>`<button class="pill ${s===state.store?"active":"inactive"}" data-store="${escHtml(s)}">${escHtml(s)}</button>`).join("")}
+      </div>
+
+      <!-- KAT + SORT -->
+      <div class="pills" id="catPills" style="padding-bottom:10px">
+        ${allCats.map(c=>`<button class="cat-pill ${c===state.cat?"active":"inactive"}" data-cat="${escHtml(c)}">${escHtml(c)}</button>`).join("")}
+        <select class="sort-select" id="sortSelect">
+          <option value="savings" ${state.sort==="savings"?"selected":""}>Bedste besparelse</option>
+          <option value="pct" ${state.sort==="pct"?"selected":""}>Bedste rabat %</option>
+          <option value="price" ${state.sort==="price"?"selected":""}>Laveste pris</option>
+          <option value="alpha" ${state.sort==="alpha"?"selected":""}>A-Z</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div class="main-content">
+    <div class="info-bar">
+      <div class="info-count">${filtered.length} tilbud · ${allStores.length-1} butikker</div>
+      <div class="info-text">${ugeTekst}</div>
+    </div>
+    ${state.loading ? `<div style="text-align:center;padding:60px 20px"><div class="spinner dark" style="width:36px;height:36px;margin:0 auto 16px"></div><div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--g)">Henter ugens tilbud...</div></div>`
+    : filtered.length===0 ? `<div class="empty-search"><div style="font-size:38px;margin-bottom:12px">🔍</div><div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--t);margin-bottom:6px">Ingen tilbud fundet</div><div style="font-size:13px">Prøv en anden søgning eller fjern filtrene</div></div>`
+    : `<div class="grid">${filtered.map((d,i)=>renderDealCard(d,i)).join("")}</div>`}
+  </div>
+
+  <!-- AD BANNER -->
+  ${renderAdBanner()}
+  `;
+}
+
+function renderDealCard(deal, idx) {
+  const pct = deal.origPrice ? Math.round(((deal.origPrice-deal.price)/deal.origPrice)*100) : 0;
+  const qty = (state.cart.find(c=>c.id===deal.id)||{qty:0}).qty;
+  return `
+  <div class="deal-card" style="animation-delay:${Math.min(idx,10)*0.04}s">
+    ${pct>0 ? `<div class="deal-badge">-${pct}%</div>` : ""}
+    <div class="deal-header">
+      <span class="deal-store">${escHtml(deal.store)}</span>
+      <span class="deal-cat">${escHtml(deal.cat||"")}</span>
+    </div>
+    <div class="deal-divider"></div>
+    <div class="deal-body">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div class="deal-emoji-box">${deal.emoji||"🛒"}</div>
+        <div style="flex:1;min-width:0">
+          <div class="deal-name">${escHtml(deal.name)}</div>
+          <div class="deal-desc">${escHtml(deal.desc||"")}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span class="deal-price">${fmt(deal.price)}</span>
+        ${deal.origPrice ? `<span class="deal-orig">${deal.origPrice} kr</span>` : ""}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:5px">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0">
+          ${deal.unit ? `<span class="deal-unit">${escHtml(deal.unit)}</span>` : ""}
+          ${deal.unitPrice ? `<span class="deal-unit-price">${escHtml(deal.unitPrice)}</span>` : ""}
+        </div>
+        <div class="qty-wrap">
+          ${qty>0 ? `<button class="qty-btn minus" data-id="${deal.id}" data-delta="-1">−</button><div class="qty-display">${qty}</div>` : ""}
+          <button class="qty-btn plus ${qty===0?"solo":""}" data-id="${deal.id}" data-delta="1">+</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAdBanner() {
+  return `<div class="ad-banner">
+    <div style="padding:0 16px 5px;display:flex;justify-content:space-between">
+      <span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#ccc">Annoncører</span>
+      <span style="font-size:9px;color:#ddd">← træk →</span>
+    </div>
+    <div class="ad-scroll" id="adScroll">
+      ${[...ADS,...ADS].map(ad=>`
+        <div class="ad-card" style="background:${ad.bg}">
+          <div style="position:absolute;right:-8px;top:-8px;width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,0.06)"></div>
+          <span style="font-size:20px">${ad.emoji}</span>
+          <div>
+            <div style="color:#fff;font-weight:700;font-size:13px;font-family:'Playfair Display',serif">${ad.brand}</div>
+            <div style="color:rgba(255,255,255,0.55);font-size:9px">${ad.tag}</div>
+          </div>
+          <div style="position:absolute;top:5px;right:7px;width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center">
+            <svg width="6" height="6" viewBox="0 0 8 8" fill="none"><path d="M4 1v6M1 4h6" stroke="rgba(255,255,255,0.45)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function renderCartPanel() {
+  const grouped = state.cart.reduce((a,d)=>{if(!a[d.store])a[d.store]=[];a[d.store].push(d);return a;},{});
+  const stores = Object.keys(grouped);
+  const totalSave = state.cart.reduce((s,d)=>s+(d.savings||0)*d.qty,0);
+  const totalPrice = state.cart.reduce((s,d)=>s+d.price*d.qty,0);
+  return `
+  <div class="cart-panel">
+    <div class="cart-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <span style="font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:#fff">Min Indkøbsliste</span>
+        </div>
+        <button id="cartClose" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:700">✕</button>
+      </div>
+      <div style="color:rgba(255,255,255,0.65);font-size:11px;padding-left:30px">${state.cart.reduce((s,d)=>s+d.qty,0)} enheder · ${stores.length} ${stores.length===1?"butik":"butikker"}</div>
+    </div>
+    <div class="cart-items">
+      ${state.cart.length===0 ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--m);text-align:center">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--m)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <div style="font-size:15px;font-weight:600;color:var(--s)">Listen er tom</div>
+        <div style="font-size:13px;max-width:200px;line-height:1.5">Tryk + på et tilbud for at tilføje det</div>
+      </div>` :
+      stores.map((sn,si)=>{
+        const items=grouped[sn];
+        const sTotal=items.reduce((s,d)=>s+d.price*d.qty,0);
+        return `<div style="margin-bottom:${si<stores.length-1?"18px":"0"}">
+          <div class="cart-store-header">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="cart-store-dot"></div>
+              <span style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--t)">${escHtml(sn)}</span>
+              <span style="font-size:10px;color:var(--g);background:var(--gl);padding:1px 7px;border-radius:10px;font-weight:600">${items.reduce((s,d)=>s+d.qty,0)} stk</span>
+            </div>
+            <span style="font-size:12px;font-weight:600;color:var(--s)">${sTotal.toFixed(2).replace(".",",")} kr</span>
+          </div>
+          ${items.map(deal=>`
+            <div class="cart-item">
+              <span style="font-size:18px;flex-shrink:0">${deal.emoji||"🛒"}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(deal.name)}</div>
+                <div style="font-size:10px;color:var(--m)">${fmt(deal.price)} pr. stk</div>
+              </div>
+              <div style="display:flex;align-items:center;flex-shrink:0">
+                <button style="width:28px;height:28px;border-radius:6px 0 0 6px;border:1px solid var(--b);border-right:none;background:#fff;cursor:pointer;color:var(--g);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center" data-cart-id="${deal.id}" data-cart-delta="-1">−</button>
+                <div style="width:30px;height:28px;border:1px solid var(--b);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">${deal.qty}</div>
+                <button style="width:28px;height:28px;border-radius:0 6px 6px 0;border:1px solid var(--g);background:var(--g);cursor:pointer;color:#fff;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center" data-cart-id="${deal.id}" data-cart-delta="1">+</button>
+              </div>
+              <div style="font-size:13px;font-weight:700;color:var(--g);flex-shrink:0;min-width:52px;text-align:right">${fmt(deal.price*deal.qty)}</div>
+              <button style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:4px;border-radius:4px" data-cart-remove="${deal.id}">✕</button>
+            </div>`).join("")}
+        </div>`;
+      }).join("")}
+    </div>
+    ${state.cart.length>0 ? `<div class="cart-footer">
+      <div style="background:var(--yl);border:1px solid var(--y);border-radius:8px;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;color:#6a5000;font-weight:600">💰 Du sparer i alt</span>
+        <span style="font-size:15px;font-weight:700;color:#6a5000">-${totalSave.toFixed(0)} kr</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <span style="font-size:13px;color:var(--m)">Pris i alt</span>
+        <span style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--g)">${totalPrice.toFixed(2).replace(".",",")} kr</span>
+      </div>
+      <button id="cartClear" style="width:100%;padding:11px;background:transparent;color:var(--m);border:1px solid var(--b);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Ryd hele listen</button>
+    </div>` : ""}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// BIND CUSTOMER
+// ════════════════════════════════════════════════════════════════
+let searchTimer = null;
+let logoClicks = 0, logoTimer = null;
+
+function bindCustomer() {
+  // Logo 5 tryk
+  const logoBtn = document.getElementById("logoBtn");
+  if (logoBtn) {
+    logoBtn.onclick = () => {
+      logoClicks++;
+      clearTimeout(logoTimer);
+      logoTimer = setTimeout(()=>{ logoClicks=0; }, 2000);
+      if (logoClicks >= 5) {
+        logoClicks = 0; clearTimeout(logoTimer);
+        state.page = isAdminLoggedIn() ? "admin" : "admin-login";
+        render();
+      }
+    };
+  }
+
+  // Søg
+  const si = document.getElementById("searchInput");
+  if (si) {
+    si.addEventListener("input", e => {
+      state.input = e.target.value;
+      clearTimeout(searchTimer);
+      if (!state.input) { state.search=""; state.suggs=[]; render(); return; }
+      searchTimer = setTimeout(()=>{
+        state.search = state.input;
+        const toks = state.input.toLowerCase().trim().split(/\s+/).filter(t=>t.length>1);
+        const seen=new Set(), res=[];
+        for (const d of state.deals) {
+          if (scoreSearch(d,toks)>0) {
+            const lbl=d.name.split(" ").slice(0,3).join(" ");
+            if (!seen.has(lbl)) { seen.add(lbl); res.push({label:lbl,store:d.store}); }
+            if (res.length>=5) break;
+          }
+        }
+        state.suggs = res;
+        render();
+      }, 180);
+    });
+    si.addEventListener("keydown", e => {
+      if (e.key==="Escape") { state.input=""; state.search=""; state.suggs=[]; render(); }
+    });
+    si.addEventListener("focus", () => {
+      if (state.input.length>=2 && !state.suggs.length) {
+        const ev = new Event("input"); si.dispatchEvent(ev);
+      }
+    });
+    si.addEventListener("blur", ()=>{ setTimeout(()=>{ state.suggs=[]; render(); }, 150); });
+  }
+
+  const sc = document.getElementById("searchClear");
+  if (sc) sc.onclick = ()=>{ state.input=""; state.search=""; state.suggs=[]; render(); };
+
+  // Forslag
+  document.querySelectorAll(".sugg-item").forEach(el => {
+    el.onmousedown = ()=>{
+      state.input = el.dataset.label;
+      state.search = el.dataset.label;
+      state.suggs = [];
+      render();
+    };
+  });
+
+  // Butik pills
+  document.querySelectorAll("[data-store]").forEach(el=>{
+    el.onclick = ()=>{ state.store=el.dataset.store; render(); };
+  });
+
+  // Kat pills
+  document.querySelectorAll("[data-cat]").forEach(el=>{
+    el.onclick = ()=>{ state.cat=el.dataset.cat; render(); };
+  });
+
+  // Sort
+  const ss = document.getElementById("sortSelect");
+  if (ss) ss.onchange = e=>{ state.sort=e.target.value; render(); };
+
+  // Qty buttons
+  document.querySelectorAll("[data-delta]").forEach(btn=>{
+    btn.onclick = ()=>{ cartUpdate(btn.dataset.id, parseInt(btn.dataset.delta)); };
+  });
+
+  // Cart
+  const cartBtn = document.getElementById("cartBtn");
+  if (cartBtn) cartBtn.onclick = ()=>{ state.cartOpen=true; render(); };
+
+  const cartOverlay = document.getElementById("cartOverlay");
+  if (cartOverlay) cartOverlay.onclick = ()=>{ state.cartOpen=false; render(); };
+
+  const cartClose = document.getElementById("cartClose");
+  if (cartClose) cartClose.onclick = ()=>{ state.cartOpen=false; render(); };
+
+  const cartClear = document.getElementById("cartClear");
+  if (cartClear) cartClear.onclick = ()=>{ state.cart=[]; render(); };
+
+  document.querySelectorAll("[data-cart-id]").forEach(btn=>{
+    btn.onclick = ()=>{ cartUpdate(btn.dataset.cartId, parseInt(btn.dataset.cartDelta)); };
+  });
+
+  document.querySelectorAll("[data-cart-remove]").forEach(btn=>{
+    btn.onclick = ()=>{ state.cart=state.cart.filter(d=>d.id!==btn.dataset.cartRemove); render(); };
+  });
+
+  // Meal btn
+  const mealBtn = document.getElementById("mealBtn");
+  if (mealBtn) mealBtn.onclick = ()=>{ state.page="meals"; render(); };
+
+  // Ad banner drag
+  bindAdBanner();
+}
+
+function cartUpdate(id, delta) {
+  const ex = state.cart.find(d=>d.id===id);
+  if (!ex) {
+    if (delta>0) {
+      const deal = state.deals.find(d=>d.id===id);
+      if (deal) state.cart.push({...deal, qty:1});
+    }
+  } else {
+    const q = ex.qty + delta;
+    if (q<=0) state.cart = state.cart.filter(d=>d.id!==id);
+    else state.cart = state.cart.map(d=>d.id===id ? {...d,qty:q} : d);
+  }
+  render();
+}
+
+function bindAdBanner() {
+  const el = document.getElementById("adScroll");
+  if (!el) return;
+  let drag = false, sx=0, sl=0;
+  el.onmousedown = e=>{ drag=true; sx=e.clientX; sl=el.scrollLeft; };
+  el.onmousemove = e=>{ if(drag) el.scrollLeft=sl-(e.clientX-sx); };
+  el.onmouseup = ()=>{ drag=false; };
+  el.onmouseleave = ()=>{ drag=false; };
+  el.ontouchstart = e=>{ sx=e.touches[0].clientX; sl=el.scrollLeft; };
+  el.ontouchmove = e=>{ el.scrollLeft=sl-(e.touches[0].clientX-sx); };
+}
+
+// ════════════════════════════════════════════════════════════════
+// UGENS RETTER
+// ════════════════════════════════════════════════════════════════
+const FB_MEALS = [
+  {title:"Kylling i flødesauce",emoji:"🍗",desc:"Saftig kylling med champignon og fløde",time:"30 min",portions:4,totalPrice:65,
+   ingredients:[{name:"Kyllingefilet",amount:"400 g",store:"Rema 1000",price:20,onSale:true},{name:"Champignon",amount:"250 g",store:"Lidl",price:13,onSale:true},{name:"Fløde",amount:"2 dl",store:null,price:9,onSale:false},{name:"Smør",amount:"50 g",store:"Netto",price:6,onSale:true}],
+   steps:["Skær kyllingen i tern og krydr med salt og peber.","Brun kyllingen i smør 5 min ved høj varme.","Tilsæt champignon og steg 3 min.","Hæld fløde i og lad simre 10 min. Server med pasta."]},
+  {title:"Spaghetti Bolognese",emoji:"🍝",desc:"Klassisk pastaret med hakket oksekød",time:"35 min",portions:4,totalPrice:52,
+   ingredients:[{name:"Hakket Oksekød",amount:"500 g",store:"Rema 1000",price:25,onSale:true},{name:"Spaghetti",amount:"400 g",store:null,price:8,onSale:false},{name:"Hakkede Tomater",amount:"1 dåse",store:null,price:7,onSale:false}],
+   steps:["Hak løg og svits i olie.","Brun hakket kød og krydr.","Tilsæt tomater og lad simre 20 min.","Kog spaghetti og server med saucen."]},
+  {title:"Laks med bagte kartofler",emoji:"🐟",desc:"Sund middagsret med norsk laks",time:"40 min",portions:2,totalPrice:58,
+   ingredients:[{name:"Laksesteak",amount:"300 g",store:"Lidl",price:29.95,onSale:true},{name:"Kartofler",amount:"600 g",store:null,price:8,onSale:false}],
+   steps:["Skær kartofler i både og bag 200° i 30 min.","Krydr laks med salt og peber.","Steg laks 3-4 min på hver side."]},
+  {title:"Ostomelet",emoji:"🧀",desc:"Hurtig og billig hverdagsaftensmad",time:"15 min",portions:2,totalPrice:32,
+   ingredients:[{name:"Frilandsæg",amount:"4 stk",store:"Netto",price:8,onSale:true},{name:"Danbo Ost",amount:"100 g",store:"SuperBrugsen",price:5,onSale:true}],
+   steps:["Pisk æg med salt og peber.","Smelt smør på pande.","Hæld æg i, drys ost over og fold."]},
+  {title:"Hjemmelavet burger",emoji:"🍔",desc:"Saftig burger med dansk oksekød",time:"25 min",portions:4,totalPrice:78,
+   ingredients:[{name:"Hakket Oksekød",amount:"500 g",store:"Rema 1000",price:25,onSale:true},{name:"Burgerboller",amount:"4 stk",store:null,price:14,onSale:false}],
+   steps:["Form 4 bøffer og krydr.","Steg 3-4 min på hver side.","Saml burger og server."]}
+];
+
+function renderMeals() {
+  if (state.mealSelected) return renderMealDetail();
+  return `
+  <style>
+    .meals-page{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;}
+    .meals-header{background:#fff;border-bottom:1px solid var(--b);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 8px rgba(0,0,0,0.05);}
+    .back-btn{width:36px;height:36px;border-radius:9px;background:var(--gl);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    .meal-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+    .meal-card{background:#fff;border-radius:12px;border:3px solid var(--g);box-shadow:0 4px 14px rgba(42,125,46,0.1);cursor:pointer;overflow:hidden;transition:transform .18s,box-shadow .18s;animation:fadeUp .3s ease both;}
+    .meal-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(42,125,46,0.18);}
+  </style>
+  <div class="meals-page">
+    <div class="meals-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="back-btn" id="mealsBack">←</button>
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:var(--g);line-height:1">Ugens Retter</div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:10px;color:var(--m)">AI-forslag baseret på ugens tilbud</div>
+        </div>
+      </div>
+      <button id="mealsGen" style="background:${state.mealsLoading?"var(--m)":"var(--g)"};border:none;border-radius:10px;padding:8px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:${state.mealsLoading?"not-allowed":"pointer"};display:flex;align-items:center;gap:7px">
+        ${state.mealsLoading ? `<span class="spinner"></span>Laver...` : "🔄 Forny"}
+      </button>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px 20px">
+      ${state.mealsLoading ? `<div style="text-align:center;padding:60px 20px"><div class="spinner dark" style="width:40px;height:40px;margin:0 auto 18px"></div><div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--t)">AI finder ugens bedste retter...</div></div>`
+      : state.meals.length===0 ? `<div style="text-align:center;padding:50px 20px">
+          <div style="font-size:52px;margin-bottom:14px">👨‍🍳</div>
+          <div style="font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:var(--t);margin-bottom:8px">Find ugens middagsretter</div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:var(--m);max-width:270px;margin:0 auto 22px;line-height:1.6">AI'en finder 5 lækre retter baseret på ugens tilbud og beregner den billigste indkøbsrute.</div>
+          <button id="mealsStart" style="background:var(--g);border:none;border-radius:12px;padding:13px 28px;color:#fff;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;cursor:pointer">👨‍🍳 Find ugens retter</button>
+        </div>`
+      : `<div class="meal-grid">${state.meals.map((meal,i)=>`
+          <div class="meal-card" data-meal="${i}" style="animation-delay:${i*.07}s">
+            <div style="background:var(--gl);padding:16px 12px 10px;text-align:center;border-bottom:1px solid var(--b)">
+              <div style="font-size:34px;margin-bottom:6px">${meal.emoji}</div>
+              <div style="font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--t);line-height:1.3">${escHtml(meal.title)}</div>
+            </div>
+            <div style="padding:9px 11px 11px">
+              <div style="font-family:'DM Sans',sans-serif;font-size:11px;color:var(--m);margin-bottom:7px;line-height:1.4">${escHtml(meal.desc)}</div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:10px;color:var(--m)">⏱ ${meal.time}</span>
+                <span style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--g)">~${meal.totalPrice},-</span>
+              </div>
+            </div>
+          </div>`).join("")}</div>`}
+    </div>
+  </div>`;
+}
+
+function renderMealDetail() {
+  const meal = state.mealSelected;
+  const target = state.mealMode==="cheapest" ? cheapestStore(meal) : state.mealMode;
+  const mStores = [...new Set(meal.ingredients.filter(i=>i.onSale&&i.store).map(i=>i.store))];
+
+  return `
+  <div style="position:fixed;inset:0;background:#fff;display:flex;flex-direction:column">
+    <div style="background:#fff;border-bottom:1px solid var(--b);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="mealDetailBack" style="width:36px;height:36px;border-radius:9px;background:var(--gl);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px">←</button>
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--g);line-height:1">${escHtml(meal.title)}</div>
+          <div style="font-size:10px;color:var(--m)">⏱ ${meal.time} · 👥 ${meal.portions} pers.</div>
+        </div>
+      </div>
+      <span style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--g)">~${meal.totalPrice},-</span>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px 20px">
+
+      <!-- Butik valg -->
+      <div style="margin-bottom:14px">
+        <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--t);margin-bottom:8px">Hvor vil du handle?</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="mode-btn" data-mode="cheapest" style="padding:7px 14px;border-radius:20px;border:2px solid ${state.mealMode==="cheapest"?"var(--g)":"var(--b)"};background:${state.mealMode==="cheapest"?"var(--g)":"#fff"};color:${state.mealMode==="cheapest"?"#fff":"var(--t)"};font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">💰 Billigste butik</button>
+          ${mStores.map(s=>`<button class="mode-btn" data-mode="${escHtml(s)}" style="padding:7px 14px;border-radius:20px;border:2px solid ${state.mealMode===s?"var(--g)":"var(--b)"};background:${state.mealMode===s?"var(--gl)":"#fff"};color:${state.mealMode===s?"var(--g)":"var(--m)"};font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">${escHtml(s)}${state.mealMode===s?" ("+storeCost(meal,s).toFixed(0)+" kr)":""}</button>`).join("")}
+        </div>
+        ${state.mealMode==="cheapest"&&cheapestStore(meal) ? `<div style="margin-top:7px;font-size:12px;color:var(--g);font-style:italic">✓ Billigst: ${cheapestStore(meal)} (${storeCost(meal,cheapestStore(meal)).toFixed(0)} kr)</div>` : ""}
+      </div>
+
+      <!-- Ingredienser -->
+      <div style="background:#fff;border-radius:12px;border:1.5px solid var(--b);margin-bottom:12px;overflow:hidden">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--b);font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--t)">Ingredienser</div>
+        ${meal.ingredients.map((ing,i,arr)=>{
+          const isHL = ing.onSale && (target ? ing.store===target : true);
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:${i<arr.length-1?"1px solid var(--b)":"none"};background:${isHL?"var(--gl)":"#fff"}">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--t);display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                ${escHtml(ing.name)}
+                ${ing.onSale ? `<span style="font-size:9px;background:var(--y);color:#5a4000;padding:1px 6px;border-radius:8px;font-weight:700">TILBUD</span>` : ""}
+              </div>
+              <div style="font-size:10px;color:var(--m)">${escHtml(ing.amount)}${ing.store?" · "+escHtml(ing.store):""}</div>
+            </div>
+            <div style="font-size:13px;font-weight:700;color:${ing.onSale?"var(--g)":"var(--m)"};flex-shrink:0">${ing.price?ing.price+" kr":"~"}</div>
+          </div>`;
+        }).join("")}
+      </div>
+
+      <!-- Fremgangsmåde -->
+      <div style="background:#fff;border-radius:12px;border:1.5px solid var(--b);margin-bottom:14px;overflow:hidden">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--b);font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--t)">Fremgangsmåde</div>
+        ${meal.steps.map((step,i,arr)=>`
+          <div style="display:flex;gap:12px;padding:10px 14px;border-bottom:${i<arr.length-1?"1px solid var(--b)":"none"}">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--g);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">${i+1}</div>
+            <div style="font-size:13px;color:var(--t);line-height:1.55;padding-top:3px">${escHtml(step)}</div>
+          </div>`).join("")}
+      </div>
+
+      <button id="addMealToCart" ${!state.mealMode?"disabled":""} style="width:100%;padding:13px;background:${state.mealMode?"var(--g)":"#ccc"};color:#fff;border:none;border-radius:12px;font-family:'Playfair Display',serif;font-size:15px;font-weight:700;cursor:${state.mealMode?"pointer":"not-allowed"}">
+        ${state.mealMode ? "🛒 Tilføj tilbudsvarer til kurven" : "Vælg en butik ovenfor"}
+      </button>
+    </div>
+  </div>`;
+}
+
+function cheapestStore(meal) {
+  const t={};
+  for (const i of meal.ingredients) if (i.onSale&&i.store) t[i.store]=(t[i.store]||0)+(i.price||0);
+  const e=Object.entries(t);
+  return e.length ? e.sort((a,b)=>a[1]-b[1])[0][0] : null;
+}
+function storeCost(meal,s) {
+  return meal.ingredients.filter(i=>i.store===s).reduce((sum,i)=>sum+(i.price||0),0);
+}
+
+async function generateMeals() {
+  state.mealsLoading=true; state.meals=[]; state.mealSelected=null; state.mealMode=null;
+  render();
+  const src = state.deals.length>0 ? state.deals : DEMO;
+  const summary = src.slice(0,50).map(d=>`${d.name} (${d.store}, ${d.price} kr, ${d.unit||""})`).join("\n");
+  try {
+    const text = await callAI([{role:"user",content:`Lav 5 billige hverdagsretter baseret på disse tilbud:\n${summary}\n\nSvar KUN med JSON array, ingen backticks:\n[{"title":"Navn","emoji":"🍗","desc":"1 sætning","time":"30 min","portions":4,"totalPrice":65,"ingredients":[{"name":"Kyllingefilet","amount":"400 g","store":"Rema 1000","price":20,"onSale":true},{"name":"Fløde","amount":"2 dl","store":null,"price":9,"onSale":false}],"steps":["Trin 1","Trin 2"]}]`}]);
+    state.meals = extractJSON(text);
+  } catch { state.meals = FB_MEALS; }
+  state.mealsLoading=false;
+  render();
+}
+
+function bindMeals() {
+  const back = document.getElementById("mealsBack");
+  if (back) back.onclick = ()=>{ state.page="customer"; render(); };
+
+  const gen = document.getElementById("mealsGen");
+  if (gen) gen.onclick = ()=>{ if(!state.mealsLoading) generateMeals(); };
+
+  const start = document.getElementById("mealsStart");
+  if (start) start.onclick = ()=>{ generateMeals(); };
+
+  document.querySelectorAll("[data-meal]").forEach(el=>{
+    el.onclick = ()=>{ state.mealSelected=state.meals[parseInt(el.dataset.meal)]; state.mealMode=null; render(); };
+  });
+
+  const detailBack = document.getElementById("mealDetailBack");
+  if (detailBack) detailBack.onclick = ()=>{ state.mealSelected=null; state.mealMode=null; render(); };
+
+  document.querySelectorAll(".mode-btn").forEach(btn=>{
+    btn.onclick = ()=>{ state.mealMode=btn.dataset.mode; render(); };
+  });
+
+  const addBtn = document.getElementById("addMealToCart");
+  if (addBtn) addBtn.onclick = ()=>{
+    if (!state.mealMode) return;
+    const meal = state.mealSelected;
+    const target = state.mealMode==="cheapest" ? cheapestStore(meal) : state.mealMode;
+    const items = meal.ingredients
+      .filter(ing => target ? (ing.onSale&&ing.store===target) : ing.onSale)
+      .map(ing=>({
+        id:`m-${ing.name}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        name:ing.name, store:ing.store||"Ukendt", price:ing.price||0,
+        unit:ing.amount||"", emoji:"🛒", cat:"Andet", savings:0, qty:1
+      }));
+    for (const item of items) {
+      const ex = state.cart.find(d=>d.id===item.id);
+      if (ex) state.cart = state.cart.map(d=>d.id===item.id?{...d,qty:d.qty+1}:d);
+      else state.cart.push(item);
+    }
+    state.page="customer"; state.mealSelected=null; state.mealMode=null; state.cartOpen=true;
+    render();
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN LOGIN
+// ════════════════════════════════════════════════════════════════
+function renderAdminLogin() {
+  return `
+  <style>
+    .login-page{min-height:100vh;background:#f5f7f5;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .login-card{background:#fff;border-radius:20px;padding:34px 26px;width:100%;max-width:350px;box-shadow:0 8px 40px rgba(0,0,0,0.12);}
+  </style>
+  <div class="login-page">
+    <div class="login-card">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="width:50px;height:50px;border-radius:12px;border:2px solid var(--g);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="var(--g)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--g)">TilbudsHaj</div>
+        <div style="font-size:11px;color:var(--m);margin-top:3px;letter-spacing:1.5px;text-transform:uppercase">Admin Panel</div>
+      </div>
+      <label style="font-size:12px;font-weight:700;color:var(--s);display:block;margin-bottom:6px">Adgangskode</label>
+      <div style="position:relative;margin-bottom:14px">
+        <input type="password" id="loginPw" placeholder="Din adgangskode..." style="width:100%;padding:11px 44px 11px 14px;border:1.5px solid var(--b);border-radius:10px;font-size:16px;outline:none;color:var(--t)"/>
+        <button id="togglePw" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--m);font-size:14px;padding:4px">👁</button>
+      </div>
+      <div id="loginErr" style="font-size:12px;color:var(--r);margin-bottom:12px;display:none"></div>
+      <button id="loginBtn" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:12px;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;cursor:pointer">Log ind</button>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--m)">Kun for administratorer</div>
+    </div>
+  </div>`;
+}
+
+function bindAdminLogin() {
+  const pw = document.getElementById("loginPw");
+  const btn = document.getElementById("loginBtn");
+  const err = document.getElementById("loginErr");
+  const toggle = document.getElementById("togglePw");
+
+  if (toggle) toggle.onclick = ()=>{
+    pw.type = pw.type==="password" ? "text" : "password";
+    toggle.textContent = pw.type==="password" ? "👁" : "🙈";
+  };
+
+  const doLogin = ()=>{
+    if (pw.value === ADMIN_PW) {
+      sessionStorage.setItem("th_admin","1");
+      state.page="admin";
+      render();
+    } else {
+      err.textContent = "Forkert adgangskode. Prøv igen.";
+      err.style.display="block";
+      pw.value="";
+    }
+  };
+
+  if (btn) btn.onclick = doLogin;
+  if (pw) pw.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ════════════════════════════════════════════════════════════════
+function renderAdmin() {
+  const storesInDb = [...new Set(state.adminSaved.map(d=>d.store))];
+  return `
+  <style>
+    .admin-page{min-height:100vh;background:#f5f7f5;}
+    .admin-card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:14px;}
+  </style>
+  <div class="admin-page">
+    <div style="background:var(--g);padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff">TilbudsHaj · Admin</span>
+      </div>
+      <button id="adminLogout" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">Log ud</button>
+    </div>
+
+    <div style="max-width:660px;margin:0 auto;padding:20px 14px 60px">
+
+      <div class="admin-card">
+        <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--t);margin-bottom:3px">Upload tilbudsavis</div>
+        <div style="font-size:12px;color:var(--m);margin-bottom:16px">AI analyserer og opdaterer alle kunders app automatisk.</div>
+
+        <label style="font-size:12px;font-weight:700;color:var(--s);display:block;margin-bottom:6px">Butik</label>
+        <select id="adminStore" style="width:100%;padding:10px 12px;border:1.5px solid ${state.adminStore?"var(--g)":"var(--b)"};border-radius:10px;font-size:16px;color:${state.adminStore?"var(--t)":"var(--m)"};background:#fff;outline:none;cursor:pointer;margin-bottom:14px">
+          <option value="">Vælg butik...</option>
+          ${STORE_LIST.map(s=>`<option value="${s}" ${state.adminStore===s?"selected":""}>${s}</option>`).join("")}
+        </select>
+
+        <div style="display:flex;border-radius:10px;overflow:hidden;border:1.5px solid var(--b);margin-bottom:14px">
+          <button id="modeFile" style="flex:1;padding:9px 0;border:none;background:${state.adminMode==="file"?"var(--g)":"#fff"};color:${state.adminMode==="file"?"#fff":"var(--m)"};font-weight:700;font-size:13px;cursor:pointer">📄 Upload fil</button>
+          <button id="modeUrl" style="flex:1;padding:9px 0;border:none;background:${state.adminMode==="url"?"var(--g)":"#fff"};color:${state.adminMode==="url"?"#fff":"var(--m)"};font-weight:700;font-size:13px;cursor:pointer">🔗 Indsæt link</button>
+        </div>
+
+        ${state.adminMode==="file" ? `
+          <div id="fileDrop" style="border:2px dashed ${state.adminFiles.length?"var(--g)":"var(--b)"};border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;background:${state.adminFiles.length?"var(--gl)":"#fafafa"};margin-bottom:14px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${state.adminFiles.length?"var(--g)":"var(--m)"}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            ${state.adminFiles.length===0
+              ? `<div style="font-size:13px;color:var(--m);margin-top:8px">Klik for at vælge PDF eller billede</div>`
+              : `<div style="font-size:13px;color:var(--g);font-weight:600;margin-top:8px">✓ ${state.adminFiles.map(f=>f.name||f).join(", ")}</div>`}
+            <input type="file" id="fileInput" accept=".pdf,image/*" multiple style="display:none"/>
+          </div>` : `
+          <div style="margin-bottom:14px">
+            <input id="urlInput" value="${escHtml(state.adminUrl)}" placeholder="https://rema1000.dk/tilbud" style="width:100%;padding:11px 14px;border:1.5px solid ${state.adminUrl?"var(--g)":"var(--b)"};border-radius:10px;font-size:16px;outline:none;color:var(--t);background:#fff"/>
+            <div style="font-size:11px;color:var(--m);margin-top:6px;line-height:1.5">💡 Find links på etilbudsavis.dk. Tip: Billede-upload er mere pålideligt.</div>
+          </div>`}
+
+        <button id="adminAnalyse" style="width:100%;padding:13px;background:${state.adminLoading?"var(--m)":"var(--g)"};color:#fff;border:none;border-radius:12px;font-family:'Playfair Display',serif;font-size:15px;font-weight:700;cursor:${state.adminLoading?"not-allowed":"pointer"};display:flex;align-items:center;justify-content:center;gap:10px">
+          ${state.adminLoading ? `<span class="spinner"></span>Analyserer...` : state.adminMode==="url" ? "🔗 Hent og analysér" : "📄 Analysér og gem"}
+        </button>
+      </div>
+
+      <div class="admin-card">
+        <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--t);margin-bottom:4px">Live tilbud</div>
+        <div style="font-size:12px;color:var(--m);margin-bottom:12px">
+          ${storesInDb.length===0 ? "Ingen tilbud uploadet endnu — demo-tilbud vises." : state.adminSaved.length+" tilbud fra "+storesInDb.length+" butikker vises for alle kunder."}
+        </div>
+        ${storesInDb.map(s=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--gl);border-radius:10px;border:1px solid #2a7d2e22;margin-bottom:8px">
+            <div>
+              <span style="font-weight:700;color:var(--t);font-size:14px">${escHtml(s)}</span>
+              <span style="color:var(--m);font-size:12px;margin-left:8px">${state.adminSaved.filter(d=>d.store===s).length} tilbud</span>
+            </div>
+            <button class="del-store-btn" data-store="${escHtml(s)}" style="background:none;border:1px solid var(--b);color:var(--m);padding:4px 10px;border-radius:7px;font-size:11px;cursor:pointer">Slet</button>
+          </div>`).join("")}
+      </div>
+
+      ${state.adminLog.length>0 ? `
+        <div class="admin-card">
+          <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--t);margin-bottom:10px">Log</div>
+          ${state.adminLog.map(l=>`<div style="font-size:12px;padding:6px 10px;border-radius:7px;background:${l.type==="error"?"#fdecea":l.type==="ok"?"var(--gl)":"#f5f5f5"};color:${l.type==="error"?"var(--r)":l.type==="ok"?"var(--g)":"var(--m)"};margin-bottom:5px">${escHtml(l.msg)}</div>`).join("")}
+        </div>` : ""}
+    </div>
+  </div>`;
+}
+
+function addLog(msg, type="info") {
+  state.adminLog = [{msg,type},...state.adminLog].slice(0,15);
+}
+
+function stampDeals(items, store) {
+  return items.map((d,i)=>({
+    id:`${store}-${Date.now()}-${i}`,
+    store, name:d.name||"Ukendt", desc:d.desc||"",
+    price:Number(d.price)||0, origPrice:d.origPrice?Number(d.origPrice):null,
+    unit:d.unit||"", unitPrice:d.unitPrice||"", savings:Number(d.savings)||0,
+    cat:d.cat||"Andet", emoji:d.emoji||"🛒", qty:1,
+  }));
+}
+
+async function adminSaveDeals(newDeals) {
+  const meta = {week_num:getWeek(), next_week:getWeek()+1, date_str:dkDate()};
+  const ok = await SB.upsertDeals(newDeals, state.adminStore);
+  await SB.upsertMeta(meta);
+  const all = await SB.getDeals();
+  if (all && all.length>0) {
+    state.adminSaved = all;
+    state.deals = all;
+    state.meta = meta;
+  }
+  return ok;
+}
+
+async function doAdminFile() {
+  if (!state.adminFiles.length) { addLog("Vælg en fil.","error"); render(); return; }
+  if (!state.adminStore) { addLog("Vælg butik.","error"); render(); return; }
+  state.adminLoading=true; render();
+  let allNew=[];
+  for (const file of state.adminFiles) {
+    addLog(`Analyserer ${file.name}...`); render();
+    try {
+      const b64 = await new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload=()=>res(r.result.split(",")[1]); r.onerror=rej; r.readAsDataURL(file);
+      });
+      const isPdf = file.type==="application/pdf";
+      const text = await callAI([{role:"user",content:[
+        {type:isPdf?"document":"image", source:{type:"base64",media_type:file.type,data:b64}},
+        {type:"text",text:AI_PROMPT(state.adminStore)}
+      ]}]);
+      const items = stampDeals(extractJSON(text), state.adminStore);
+      allNew = [...allNew,...items];
+      addLog(`✓ ${items.length} tilbud fundet i ${file.name}`, "ok");
+    } catch(e) { addLog(`Fejl: ${e.message}`, "error"); }
+  }
+  if (allNew.length) {
+    await adminSaveDeals(allNew);
+    addLog(`💾 ${allNew.length} tilbud fra ${state.adminStore} er LIVE for alle kunder!`, "ok");
+  }
+  state.adminFiles=[]; state.adminLoading=false; render();
+}
+
+async function doAdminUrl() {
+  if (!state.adminUrl.trim()) { addLog("Indsæt et link.","error"); render(); return; }
+  if (!state.adminStore) { addLog("Vælg butik.","error"); render(); return; }
+  state.adminLoading=true; addLog(`Søger tilbud fra ${state.adminStore}...`); render();
+  try {
+    const body = {
+      model:"claude-sonnet-4-20250514", max_tokens:1000,
+      tools:[{type:"web_search_20250305",name:"web_search"}],
+      messages:[{role:"user",content:`Find alle aktuelle tilbud fra "${state.adminStore}" på: ${state.adminUrl.trim()}\n\n${AI_PROMPT(state.adminStore)}`}]
+    };
+    const r = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if (!r.ok) throw new Error(`API fejl ${r.status}`);
+    const d = await r.json();
+    const text = (d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    if (!text.trim()) throw new Error("Ingen tekst fra AI — prøv billede-upload i stedet");
+    const items = stampDeals(extractJSON(text), state.adminStore);
+    await adminSaveDeals(items);
+    addLog(`✓ ${items.length} tilbud fra ${state.adminStore} er LIVE!`, "ok");
+    state.adminUrl="";
+  } catch(e) { addLog(`Fejl: ${e.message}`, "error"); }
+  state.adminLoading=false; render();
+}
+
+function bindAdmin() {
+  const logout = document.getElementById("adminLogout");
+  if (logout) logout.onclick = ()=>{ sessionStorage.removeItem("th_admin"); state.page="customer"; render(); };
+
+  const storeSelect = document.getElementById("adminStore");
+  if (storeSelect) storeSelect.onchange = e=>{ state.adminStore=e.target.value; render(); };
+
+  const modeFile = document.getElementById("modeFile");
+  if (modeFile) modeFile.onclick = ()=>{ state.adminMode="file"; render(); };
+
+  const modeUrl = document.getElementById("modeUrl");
+  if (modeUrl) modeUrl.onclick = ()=>{ state.adminMode="url"; render(); };
+
+  const fileDrop = document.getElementById("fileDrop");
+  const fileInput = document.getElementById("fileInput");
+  if (fileDrop && fileInput) {
+    fileDrop.onclick = ()=>fileInput.click();
+    fileInput.onchange = e=>{ state.adminFiles=Array.from(e.target.files); render(); };
+  }
+
+  const urlInput = document.getElementById("urlInput");
+  if (urlInput) urlInput.oninput = e=>{ state.adminUrl=e.target.value; };
+
+  const analyse = document.getElementById("adminAnalyse");
+  if (analyse) analyse.onclick = ()=>{
+    if (!state.adminLoading) {
+      state.adminMode==="url" ? doAdminUrl() : doAdminFile();
+    }
+  };
+
+  document.querySelectorAll(".del-store-btn").forEach(btn=>{
+    btn.onclick = async ()=>{
+      await SB.deleteStore(btn.dataset.store);
+      const all = await SB.getDeals();
+      state.adminSaved = all||[];
+      state.deals = all && all.length>0 ? all : DEMO;
+      addLog(`${btn.dataset.store} slettet.`);
+      render();
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════
+function escHtml(s) {
+  if (!s) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+async function init() {
+  state.loading = true;
+  render();
+
+  // Hent fra Supabase
+  try {
+    const [deals, meta] = await Promise.all([SB.getDeals(), SB.getMeta()]);
+    state.deals = (deals && deals.length>0) ? deals : DEMO;
+    state.meta = meta;
+    state.adminSaved = (deals && deals.length>0) ? deals : [];
+  } catch {
+    state.deals = DEMO;
+  }
+
+  state.loading = false;
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
+HTMLEOF
+echo "Færdig! $(wc -l < /mnt/user-data/outputs/index.html) linjer"
+Output
+
+Færdig! 992 linjer
