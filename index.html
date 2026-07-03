@@ -38,11 +38,11 @@
 // ════════════════════════════════════════════════════════════════
 // KONFIGURATION — udfyld de to Supabase-linjer (se guide)
 // ════════════════════════════════════════════════════════════════
-const SUPABASE_URL   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtZGtnbHZoemNkcGtjb295aWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NjM5OTUsImV4cCI6MjA5NjEzOTk5NX0.d-yB6dqUhWclxHLozBI4Xte-wlnK8jkdisMPff5bz8w  ";
-const SUPABASE_ANON  = "sb_publishable_ygQzGqbLS_MTu79M8IskjA_vfuDmoP3";
+const SUPABASE_URL   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtZGtnbHZoemNkcGtjb295aWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NjM5OTUsImV4cCI6MjA5NjEzOTk5NX0.d-yB6dqUhWclxHLozBI4Xte-wlnK8jkdisMPff5bz8w ";
+const SUPABASE_ANON  = "sb_publishable_ygQzGqbLS_MTu79M8IskjA_vfuDmoP3 ";
 const ADMIN_PW       = "maxx1331-71920303aA";
 const ADMIN_TAP_COUNT = 7;   // antal hurtige tryk på logoet for admin-adgang
-
+ 
 // ════════════════════════════════════════════════════════════════
 // SUPABASE
 // ════════════════════════════════════════════════════════════════
@@ -69,7 +69,7 @@ const SB = {
     await fetch(SUPABASE_URL+"/rest/v1/deals?store=eq."+encodeURIComponent(store),{method:"DELETE",headers:this.h()});
   }
 };
-
+ 
 // ════════════════════════════════════════════════════════════════
 // HJÆLPEFUNKTIONER
 // ════════════════════════════════════════════════════════════════
@@ -92,7 +92,7 @@ const AI_PROMPT = store =>
   "Svar KUN med et JSON array, ingen backticks, ingen forklaring:\n"+
   "[{\"name\":\"Produktnavn\",\"desc\":\"mængde/variant\",\"price\":19.95,\"origPrice\":29.95,\"unit\":\"500 g\",\"unitPrice\":\"39,90 kr/kg\",\"savings\":10,\"cat\":\"Kød\",\"emoji\":\"🥩\"}]\n"+
   "Kategorier: Kød Mejeri Grønt Fisk Kolonial Hygiejne Rengøring Drikkevarer Andet. price og origPrice er tal. savings=Math.round(origPrice-price). Beregn unitPrice pr kg/liter.";
-
+ 
 // ════════════════════════════════════════════════════════════════
 // DEMO DATA (vises indtil du uploader rigtige aviser)
 // ════════════════════════════════════════════════════════════════
@@ -129,7 +129,7 @@ const DEMO = [
   {id:"d30",store:"Fakta",name:"Kartofler",desc:"2,5 kg, danske",emoji:"🥔",price:14.95,origPrice:22,unit:"2,5 kg",unitPrice:"5,98 kr/kg",savings:7,cat:"Grønt"},
   {id:"d31",store:"Fakta",name:"Yoghurt naturel",desc:"1 kg, Arla",emoji:"🍶",price:12.95,origPrice:19,unit:"1 kg",unitPrice:"12,95 kr/kg",savings:6,cat:"Mejeri"}
 ];
-
+ 
 const STORE_LIST = ["Meny","Rema 1000","Netto","SuperBrugsen","Lidl","Bilka","Føtex","Aldi","Kvickly","Coop 365","Spar","Min Købmand","Fakta"];
 const ADS = [
   {brand:"Arla",tag:"Naturens bedste",emoji:"🐄",bg:"#1a3a6e"},
@@ -139,7 +139,7 @@ const ADS = [
   {brand:"Graasten",tag:"Syltetøj til familien",emoji:"🍓",bg:"#6a1a1a"},
   {brand:"Matilde",tag:"Frisk dansk mælk",emoji:"🥛",bg:"#0a3a5a"}
 ];
-
+ 
 // Smart søgning med ordgrænser + synonymer
 const SYNS = {
   "mælk":["mælk","letmælk","skummetmælk","minimælk","sødmælk","kefir"],
@@ -167,7 +167,7 @@ function scoreSearch(deal,tokens){
   }
   return tot;
 }
-
+ 
 // ════════════════════════════════════════════════════════════════
 // APP STATE
 // ════════════════════════════════════════════════════════════════
@@ -179,7 +179,7 @@ const state = {
   adminLoading:false, adminLog:[], adminSaved:[],
   meals:[], mealsLoading:false, mealSelected:null, mealMode:null
 };
-
+ 
 // ════════════════════════════════════════════════════════════════
 // RENDER ENGINE
 // ════════════════════════════════════════════════════════════════
@@ -190,7 +190,7 @@ function render(){
   if(state.page==="meals"){ app.innerHTML=renderMeals(); bindMeals(); return; }
   app.innerHTML=renderCustomer(); bindCustomer();
 }
-
+ 
 // ════════════════════════════════════════════════════════════════
 // CUSTOMER PAGE
 // ════════════════════════════════════════════════════════════════
@@ -207,7 +207,7 @@ function getFiltered(){
       return a.name.localeCompare(b.name,"da");
     });
 }
-
+ 
 function renderCustomer(){
   const filtered=getFiltered();
   const allStores=["Alle"].concat([...new Set(state.deals.map(d=>d.store))]);
@@ -216,7 +216,7 @@ function renderCustomer(){
   const ugeTekst=state.meta
     ? "Tilbud fra butikkernes ugeaviser · Priser kan variere · Uge "+state.meta.week_num+"-"+state.meta.next_week+", "+state.meta.date_str
     : "Tilbud fra butikkernes ugeaviser · Priser kan variere";
-
+ 
   return ''
   + '<style>'
   + '.header{background:#fff;border-bottom:1px solid var(--b);position:sticky;top:0;z-index:50;box-shadow:0 1px 10px rgba(0,0,0,0.05);}'
@@ -295,7 +295,7 @@ function renderCustomer(){
   + '</div>'
   + renderAdBanner();
 }
-
+ 
 function renderDealCard(deal,idx){
   const pct=deal.origPrice?Math.round(((deal.origPrice-deal.price)/deal.origPrice)*100):0;
   const qty=(state.cart.find(c=>c.id===deal.id)||{qty:0}).qty;
@@ -311,13 +311,13 @@ function renderDealCard(deal,idx){
   +   '</div>'
   + '</div>';
 }
-
+ 
 function renderAdBanner(){
   return '<div class="ad-banner"><div style="padding:0 16px 5px;display:flex;justify-content:space-between"><span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#ccc">Annoncører</span><span style="font-size:9px;color:#ddd">← træk →</span></div><div class="ad-scroll" id="adScroll">'
   + ADS.concat(ADS).map(ad=>'<div class="ad-card" style="background:'+ad.bg+'"><div style="position:absolute;right:-8px;top:-8px;width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,0.06)"></div><span style="font-size:20px">'+ad.emoji+'</span><div><div style="color:#fff;font-weight:700;font-size:13px;font-family:\'Playfair Display\',serif">'+ad.brand+'</div><div style="color:rgba(255,255,255,0.55);font-size:9px">'+ad.tag+'</div></div><div style="position:absolute;top:5px;right:7px;width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center"><svg width="6" height="6" viewBox="0 0 8 8" fill="none"><path d="M4 1v6M1 4h6" stroke="rgba(255,255,255,0.45)" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>').join("")
   + '</div></div>';
 }
-
+ 
 function renderCartPanel(){
   const grouped=state.cart.reduce((a,d)=>{if(!a[d.store])a[d.store]=[];a[d.store].push(d);return a;},{});
   const stores=Object.keys(grouped);
@@ -340,6 +340,345 @@ function renderCartPanel(){
       : '')
   + '</div>';
 }
+ 
+<script>
+// ════════════════════════════════════════════════════════════════
+// BIND CUSTOMER
+// ════════════════════════════════════════════════════════════════
+let searchTimer=null, logoClicks=0, logoTimer=null;
+ 
+function bindCustomer(){
+  const logoBtn=document.getElementById("logoBtn");
+  if(logoBtn){
+    logoBtn.onclick=()=>{
+      logoClicks++;
+      clearTimeout(logoTimer);
+      logoTimer=setTimeout(()=>{logoClicks=0;},2000);
+      if(logoClicks>=ADMIN_TAP_COUNT){
+        logoClicks=0; clearTimeout(logoTimer);
+        state.page=isAdminLoggedIn()?"admin":"admin-login";
+        render();
+      }
+    };
+  }
+  const si=document.getElementById("searchInput");
+  if(si){
+    si.addEventListener("input",e=>{
+      state.input=e.target.value;
+      clearTimeout(searchTimer);
+      if(!state.input){state.search="";state.suggs=[];render();placeCaret();return;}
+      searchTimer=setTimeout(()=>{
+        state.search=state.input;
+        const toks=state.input.toLowerCase().trim().split(/\s+/).filter(t=>t.length>1);
+        const seen=new Set(),res=[];
+        for(const d of state.deals){
+          if(scoreSearch(d,toks)>0){
+            const lbl=d.name.split(" ").slice(0,3).join(" ");
+            if(!seen.has(lbl)){seen.add(lbl);res.push({label:lbl,store:d.store});}
+            if(res.length>=5)break;
+          }
+        }
+        state.suggs=res; render(); placeCaret();
+      },180);
+    });
+    si.addEventListener("keydown",e=>{ if(e.key==="Escape"){state.input="";state.search="";state.suggs=[];render();} });
+  }
+  function placeCaret(){
+    const el=document.getElementById("searchInput");
+    if(el){ el.focus(); const v=el.value; el.value=""; el.value=v; }
+  }
+  const sc=document.getElementById("searchClear");
+  if(sc)sc.onclick=()=>{state.input="";state.search="";state.suggs=[];render();};
+  document.querySelectorAll(".sugg-item").forEach(el=>{
+    el.onmousedown=()=>{state.input=el.dataset.label;state.search=el.dataset.label;state.suggs=[];render();};
+  });
+  document.querySelectorAll("[data-store]").forEach(el=>{ el.onclick=()=>{state.store=el.dataset.store;render();}; });
+  document.querySelectorAll("[data-cat]").forEach(el=>{ el.onclick=()=>{state.cat=el.dataset.cat;render();}; });
+  const ss=document.getElementById("sortSelect");
+  if(ss)ss.onchange=e=>{state.sort=e.target.value;render();};
+  document.querySelectorAll("[data-delta]").forEach(btn=>{ btn.onclick=()=>cartUpdate(btn.dataset.id,parseInt(btn.dataset.delta)); });
+  const cartBtn=document.getElementById("cartBtn");
+  if(cartBtn)cartBtn.onclick=()=>{state.cartOpen=true;render();};
+  const cartOverlay=document.getElementById("cartOverlay");
+  if(cartOverlay)cartOverlay.onclick=()=>{state.cartOpen=false;render();};
+  const cartClose=document.getElementById("cartClose");
+  if(cartClose)cartClose.onclick=()=>{state.cartOpen=false;render();};
+  const cartClear=document.getElementById("cartClear");
+  if(cartClear)cartClear.onclick=()=>{state.cart=[];render();};
+  document.querySelectorAll("[data-cart-id]").forEach(btn=>{ btn.onclick=()=>cartUpdate(btn.dataset.cartId,parseInt(btn.dataset.cartDelta)); });
+  document.querySelectorAll("[data-cart-remove]").forEach(btn=>{ btn.onclick=()=>{state.cart=state.cart.filter(d=>d.id!==btn.dataset.cartRemove);render();}; });
+  const mealBtn=document.getElementById("mealBtn");
+  if(mealBtn)mealBtn.onclick=()=>{state.page="meals";render();};
+  bindAdBanner();
+}
+ 
+function cartUpdate(id,delta){
+  const ex=state.cart.find(d=>d.id===id);
+  if(!ex){
+    if(delta>0){ const deal=state.deals.find(d=>d.id===id); if(deal)state.cart.push(Object.assign({},deal,{qty:1})); }
+  }else{
+    const q=ex.qty+delta;
+    if(q<=0)state.cart=state.cart.filter(d=>d.id!==id);
+    else state.cart=state.cart.map(d=>d.id===id?Object.assign({},d,{qty:q}):d);
+  }
+  render();
+}
+ 
+function bindAdBanner(){
+  const el=document.getElementById("adScroll");
+  if(!el)return;
+  let drag=false,sx=0,sl=0;
+  el.onmousedown=e=>{drag=true;sx=e.clientX;sl=el.scrollLeft;};
+  el.onmousemove=e=>{if(drag)el.scrollLeft=sl-(e.clientX-sx);};
+  el.onmouseup=()=>{drag=false;};
+  el.onmouseleave=()=>{drag=false;};
+  el.ontouchstart=e=>{sx=e.touches[0].clientX;sl=el.scrollLeft;};
+  el.ontouchmove=e=>{el.scrollLeft=sl-(e.touches[0].clientX-sx);};
+}
+ 
+// ════════════════════════════════════════════════════════════════
+// UGENS RETTER
+// ════════════════════════════════════════════════════════════════
+const FB_MEALS=[
+  {title:"Kylling i flødesauce",emoji:"🍗",desc:"Saftig kylling med champignon og fløde",time:"30 min",portions:4,totalPrice:65,ingredients:[{name:"Kyllingefilet",amount:"400 g",store:"Rema 1000",price:20,onSale:true},{name:"Champignon",amount:"250 g",store:"Lidl",price:13,onSale:true},{name:"Fløde",amount:"2 dl",store:null,price:9,onSale:false},{name:"Smør",amount:"50 g",store:"Netto",price:6,onSale:true}],steps:["Skær kyllingen i tern og krydr med salt og peber.","Brun kyllingen i smør 5 min ved høj varme.","Tilsæt champignon og steg 3 min.","Hæld fløde i og lad simre 10 min. Server med pasta."]},
+  {title:"Spaghetti Bolognese",emoji:"🍝",desc:"Klassisk pastaret med hakket oksekød",time:"35 min",portions:4,totalPrice:52,ingredients:[{name:"Hakket Oksekød",amount:"500 g",store:"Rema 1000",price:25,onSale:true},{name:"Spaghetti",amount:"400 g",store:null,price:8,onSale:false},{name:"Hakkede Tomater",amount:"1 dåse",store:null,price:7,onSale:false}],steps:["Hak løg og svits i olie.","Brun hakket kød og krydr.","Tilsæt tomater og lad simre 20 min.","Kog spaghetti og server med saucen."]},
+  {title:"Laks med bagte kartofler",emoji:"🐟",desc:"Sund middagsret med norsk laks",time:"40 min",portions:2,totalPrice:58,ingredients:[{name:"Laksesteak",amount:"300 g",store:"Lidl",price:29.95,onSale:true},{name:"Kartofler",amount:"600 g",store:null,price:8,onSale:false}],steps:["Skær kartofler i både og bag 200° i 30 min.","Krydr laks med salt og peber.","Steg laks 3-4 min på hver side."]},
+  {title:"Ostomelet",emoji:"🧀",desc:"Hurtig og billig hverdagsaftensmad",time:"15 min",portions:2,totalPrice:32,ingredients:[{name:"Frilandsæg",amount:"4 stk",store:"Netto",price:8,onSale:true},{name:"Danbo Ost",amount:"100 g",store:"SuperBrugsen",price:5,onSale:true}],steps:["Pisk æg med salt og peber.","Smelt smør på pande.","Hæld æg i, drys ost over og fold."]},
+  {title:"Hjemmelavet burger",emoji:"🍔",desc:"Saftig burger med dansk oksekød",time:"25 min",portions:4,totalPrice:78,ingredients:[{name:"Hakket Oksekød",amount:"500 g",store:"Rema 1000",price:25,onSale:true},{name:"Burgerboller",amount:"4 stk",store:null,price:14,onSale:false}],steps:["Form 4 bøffer og krydr.","Steg 3-4 min på hver side.","Saml burger og server."]}
+];
+ 
+function cheapestStore(meal){
+  const t={};
+  for(const i of meal.ingredients)if(i.onSale&&i.store)t[i.store]=(t[i.store]||0)+(i.price||0);
+  const e=Object.entries(t);
+  return e.length?e.sort((a,b)=>a[1]-b[1])[0][0]:null;
+}
+function storeCost(meal,s){ return meal.ingredients.filter(i=>i.store===s).reduce((sum,i)=>sum+(i.price||0),0); }
+ 
+async function generateMeals(){
+  state.mealsLoading=true; state.meals=[]; state.mealSelected=null; state.mealMode=null; render();
+  const src=state.deals.length>0?state.deals:DEMO;
+  const summary=src.slice(0,50).map(d=>d.name+" ("+d.store+", "+d.price+" kr, "+(d.unit||"")+")").join("\n");
+  try{
+    const text=await callAI([{role:"user",content:"Lav 5 billige hverdagsretter baseret på disse tilbud:\n"+summary+"\n\nSvar KUN med JSON array, ingen backticks:\n[{\"title\":\"Navn\",\"emoji\":\"🍗\",\"desc\":\"1 sætning\",\"time\":\"30 min\",\"portions\":4,\"totalPrice\":65,\"ingredients\":[{\"name\":\"Kyllingefilet\",\"amount\":\"400 g\",\"store\":\"Rema 1000\",\"price\":20,\"onSale\":true},{\"name\":\"Fløde\",\"amount\":\"2 dl\",\"store\":null,\"price\":9,\"onSale\":false}],\"steps\":[\"Trin 1\",\"Trin 2\"]}]"}]);
+    state.meals=extractJSON(text);
+  }catch(e){ state.meals=FB_MEALS; }
+  state.mealsLoading=false; render();
+}
+ 
+function renderMeals(){
+  if(state.mealSelected)return renderMealDetail();
+  return '<div style="position:fixed;inset:0;background:#fff;display:flex;flex-direction:column">'
+  + '<div style="background:#fff;border-bottom:1px solid #e0e8e0;padding:max(12px,env(safe-area-inset-top)) 14px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 8px rgba(0,0,0,0.05)"><div style="display:flex;align-items:center;gap:10px"><button id="mealsBack" style="width:36px;height:36px;border-radius:9px;background:#f0f8f0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px">←</button><div><div style="font-family:\'Playfair Display\',serif;font-size:19px;font-weight:700;color:#2a7d2e;line-height:1">Ugens Retter</div><div style="font-size:10px;color:#8a9e8a">AI-forslag baseret på ugens tilbud</div></div></div><button id="mealsGen" style="background:'+(state.mealsLoading?"#8a9e8a":"#2a7d2e")+';border:none;border-radius:10px;padding:8px 14px;color:#fff;font-size:12px;font-weight:700;cursor:'+(state.mealsLoading?"not-allowed":"pointer")+';display:flex;align-items:center;gap:7px">'+(state.mealsLoading?'<span class="spinner"></span>Laver...':'🔄 Forny')+'</button></div>'
+  + '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px 20px">'
+  + (state.mealsLoading
+      ? '<div style="text-align:center;padding:60px 20px"><div class="spinner dark" style="width:40px;height:40px;margin:0 auto 18px"></div><div style="font-family:\'Playfair Display\',serif;font-size:18px;color:#1a1a1a">AI finder ugens bedste retter...</div></div>'
+      : state.meals.length===0
+        ? '<div style="text-align:center;padding:50px 20px"><div style="font-size:52px;margin-bottom:14px">👨‍🍳</div><div style="font-family:\'Playfair Display\',serif;font-size:21px;font-weight:700;color:#1a1a1a;margin-bottom:8px">Find ugens middagsretter</div><div style="font-size:13px;color:#8a9e8a;max-width:270px;margin:0 auto 22px;line-height:1.6">AI\'en finder 5 lækre retter baseret på ugens tilbud og beregner den billigste indkøbsrute.</div><button id="mealsStart" style="background:#2a7d2e;border:none;border-radius:12px;padding:13px 28px;color:#fff;font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;cursor:pointer">👨‍🍳 Find ugens retter</button></div>'
+        : '<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">'+state.meals.map((meal,i)=>'<div class="meal-card" data-meal="'+i+'" style="background:#fff;border-radius:12px;border:3px solid #2a7d2e;box-shadow:0 4px 14px rgba(42,125,46,0.1);cursor:pointer;overflow:hidden;animation:fadeUp .3s ease both;animation-delay:'+(i*.07)+'s"><div style="background:#f0f8f0;padding:16px 12px 10px;text-align:center;border-bottom:1px solid #e0e8e0"><div style="font-size:34px;margin-bottom:6px">'+meal.emoji+'</div><div style="font-family:\'Playfair Display\',serif;font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.3">'+escHtml(meal.title)+'</div></div><div style="padding:9px 11px 11px"><div style="font-size:11px;color:#8a9e8a;margin-bottom:7px;line-height:1.4">'+escHtml(meal.desc)+'</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:#8a9e8a">⏱ '+meal.time+'</span><span style="font-family:\'Playfair Display\',serif;font-size:14px;font-weight:700;color:#2a7d2e">~'+meal.totalPrice+',-</span></div></div></div>').join("")+'</div>')
+  + '</div></div>';
+}
+ 
+function renderMealDetail(){
+  const meal=state.mealSelected;
+  const target=state.mealMode==="cheapest"?cheapestStore(meal):state.mealMode;
+  const mStores=[...new Set(meal.ingredients.filter(i=>i.onSale&&i.store).map(i=>i.store))];
+  return '<div style="position:fixed;inset:0;background:#fff;display:flex;flex-direction:column">'
+  + '<div style="background:#fff;border-bottom:1px solid #e0e8e0;padding:max(12px,env(safe-area-inset-top)) 14px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 8px rgba(0,0,0,0.05)"><div style="display:flex;align-items:center;gap:10px"><button id="mealDetailBack" style="width:36px;height:36px;border-radius:9px;background:#f0f8f0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px">←</button><div><div style="font-family:\'Playfair Display\',serif;font-size:17px;font-weight:700;color:#2a7d2e;line-height:1">'+escHtml(meal.title)+'</div><div style="font-size:10px;color:#8a9e8a">⏱ '+meal.time+' · 👥 '+meal.portions+' pers.</div></div></div><span style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:#2a7d2e">~'+meal.totalPrice+',-</span></div>'
+  + '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px 20px">'
+  + '<div style="margin-bottom:14px"><div style="font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:8px">Hvor vil du handle?</div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="mode-btn" data-mode="cheapest" style="padding:7px 14px;border-radius:20px;border:2px solid '+(state.mealMode==="cheapest"?"#2a7d2e":"#e0e8e0")+';background:'+(state.mealMode==="cheapest"?"#2a7d2e":"#fff")+';color:'+(state.mealMode==="cheapest"?"#fff":"#1a1a1a")+';font-size:12px;font-weight:700;cursor:pointer">💰 Billigste butik</button>'+mStores.map(s=>'<button class="mode-btn" data-mode="'+escHtml(s)+'" style="padding:7px 14px;border-radius:20px;border:2px solid '+(state.mealMode===s?"#2a7d2e":"#e0e8e0")+';background:'+(state.mealMode===s?"#f0f8f0":"#fff")+';color:'+(state.mealMode===s?"#2a7d2e":"#8a9e8a")+';font-size:12px;font-weight:700;cursor:pointer">'+escHtml(s)+(state.mealMode===s?" ("+storeCost(meal,s).toFixed(0)+" kr)":"")+'</button>').join("")+'</div>'+(state.mealMode==="cheapest"&&cheapestStore(meal)?'<div style="margin-top:7px;font-size:12px;color:#2a7d2e;font-style:italic">✓ Billigst: '+cheapestStore(meal)+' ('+storeCost(meal,cheapestStore(meal)).toFixed(0)+' kr)</div>':'')+'</div>'
+  + '<div style="background:#fff;border-radius:12px;border:1.5px solid #e0e8e0;margin-bottom:12px;overflow:hidden"><div style="padding:10px 14px;border-bottom:1px solid #e0e8e0;font-family:\'Playfair Display\',serif;font-size:14px;font-weight:700;color:#1a1a1a">Ingredienser</div>'+meal.ingredients.map((ing,i,arr)=>{const isHL=ing.onSale&&(target?ing.store===target:true);return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:'+(i<arr.length-1?"1px solid #e0e8e0":"none")+';background:'+(isHL?"#f0f8f0":"#fff")+'"><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#1a1a1a;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+escHtml(ing.name)+(ing.onSale?'<span style="font-size:9px;background:#f0c000;color:#5a4000;padding:1px 6px;border-radius:8px;font-weight:700">TILBUD</span>':'')+'</div><div style="font-size:10px;color:#8a9e8a">'+escHtml(ing.amount)+(ing.store?" · "+escHtml(ing.store):"")+'</div></div><div style="font-size:13px;font-weight:700;color:'+(ing.onSale?"#2a7d2e":"#8a9e8a")+';flex-shrink:0">'+(ing.price?ing.price+" kr":"~")+'</div></div>';}).join("")+'</div>'
+  + '<div style="background:#fff;border-radius:12px;border:1.5px solid #e0e8e0;margin-bottom:14px;overflow:hidden"><div style="padding:10px 14px;border-bottom:1px solid #e0e8e0;font-family:\'Playfair Display\',serif;font-size:14px;font-weight:700;color:#1a1a1a">Fremgangsmåde</div>'+meal.steps.map((step,i,arr)=>'<div style="display:flex;gap:12px;padding:10px 14px;border-bottom:'+(i<arr.length-1?"1px solid #e0e8e0":"none")+'"><div style="width:24px;height:24px;border-radius:50%;background:#2a7d2e;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">'+(i+1)+'</div><div style="font-size:13px;color:#1a1a1a;line-height:1.55;padding-top:3px">'+escHtml(step)+'</div></div>').join("")+'</div>'
+  + '<button id="addMealToCart"'+(!state.mealMode?" disabled":"")+' style="width:100%;padding:13px;background:'+(state.mealMode?"#2a7d2e":"#ccc")+';color:#fff;border:none;border-radius:12px;font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;cursor:'+(state.mealMode?"pointer":"not-allowed")+'">'+(state.mealMode?"🛒 Tilføj tilbudsvarer til kurven":"Vælg en butik ovenfor")+'</button>'
+  + '</div></div>';
+}
+ 
+function bindMeals(){
+  const back=document.getElementById("mealsBack");
+  if(back)back.onclick=()=>{state.page="customer";render();};
+  const gen=document.getElementById("mealsGen");
+  if(gen)gen.onclick=()=>{if(!state.mealsLoading)generateMeals();};
+  const start=document.getElementById("mealsStart");
+  if(start)start.onclick=()=>generateMeals();
+  document.querySelectorAll("[data-meal]").forEach(el=>{ el.onclick=()=>{state.mealSelected=state.meals[parseInt(el.dataset.meal)];state.mealMode=null;render();}; });
+  const detailBack=document.getElementById("mealDetailBack");
+  if(detailBack)detailBack.onclick=()=>{state.mealSelected=null;state.mealMode=null;render();};
+  document.querySelectorAll(".mode-btn").forEach(btn=>{ btn.onclick=()=>{state.mealMode=btn.dataset.mode;render();}; });
+  const addBtn=document.getElementById("addMealToCart");
+  if(addBtn)addBtn.onclick=()=>{
+    if(!state.mealMode)return;
+    const meal=state.mealSelected;
+    const target=state.mealMode==="cheapest"?cheapestStore(meal):state.mealMode;
+    const items=meal.ingredients.filter(ing=>target?(ing.onSale&&ing.store===target):ing.onSale).map(ing=>({id:"m-"+ing.name+"-"+Date.now()+"-"+Math.random().toString(36).slice(2),name:ing.name,store:ing.store||"Ukendt",price:ing.price||0,unit:ing.amount||"",emoji:"🛒",cat:"Andet",savings:0,qty:1}));
+    for(const item of items){
+      const ex=state.cart.find(d=>d.id===item.id);
+      if(ex)state.cart=state.cart.map(d=>d.id===item.id?Object.assign({},d,{qty:d.qty+1}):d);
+      else state.cart.push(item);
+    }
+    state.page="customer"; state.mealSelected=null; state.mealMode=null; state.cartOpen=true; render();
+  };
+}
+ 
+// ════════════════════════════════════════════════════════════════
+// ADMIN LOGIN
+// ════════════════════════════════════════════════════════════════
+function renderAdminLogin(){
+  return '<div style="min-height:100vh;background:#f5f7f5;display:flex;align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:20px;padding:34px 26px;width:100%;max-width:350px;box-shadow:0 8px 40px rgba(0,0,0,0.12)">'
+  + '<div style="text-align:center;margin-bottom:24px"><div style="width:50px;height:50px;border-radius:12px;border:2px solid #2a7d2e;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#2a7d2e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div style="font-family:\'Playfair Display\',serif;font-size:22px;font-weight:700;color:#2a7d2e">TilbudsHaj</div><div style="font-size:11px;color:#8a9e8a;margin-top:3px;letter-spacing:1.5px;text-transform:uppercase">Admin Panel</div></div>'
+  + '<label style="font-size:12px;font-weight:700;color:#5a6e5a;display:block;margin-bottom:6px">Adgangskode</label>'
+  + '<div style="position:relative;margin-bottom:14px"><input type="password" id="loginPw" placeholder="Din adgangskode..." style="width:100%;padding:11px 44px 11px 14px;border:1.5px solid #e0e8e0;border-radius:10px;font-size:16px;outline:none;color:#1a1a1a"/><button id="togglePw" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8a9e8a;font-size:14px;padding:4px">👁</button></div>'
+  + '<div id="loginErr" style="font-size:12px;color:#d42b2b;margin-bottom:12px;display:none"></div>'
+  + '<button id="loginBtn" style="width:100%;padding:12px;background:#2a7d2e;color:#fff;border:none;border-radius:12px;font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;cursor:pointer">Log ind</button>'
+  + '<div style="text-align:center;margin-top:14px;font-size:11px;color:#8a9e8a">Kun for administratorer</div>'
+  + '</div></div>';
+}
+ 
+function bindAdminLogin(){
+  const pw=document.getElementById("loginPw");
+  const btn=document.getElementById("loginBtn");
+  const err=document.getElementById("loginErr");
+  const toggle=document.getElementById("togglePw");
+  if(toggle)toggle.onclick=()=>{ pw.type=pw.type==="password"?"text":"password"; toggle.textContent=pw.type==="password"?"👁":"🙈"; };
+  const doLogin=()=>{
+    if(pw.value===ADMIN_PW){ sessionStorage.setItem("th_admin","1"); state.page="admin"; render(); }
+    else{ err.textContent="Forkert adgangskode. Prøv igen."; err.style.display="block"; pw.value=""; }
+  };
+  if(btn)btn.onclick=doLogin;
+  if(pw)pw.addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+}
+ 
+// ════════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ════════════════════════════════════════════════════════════════
+function renderAdmin(){
+  const storesInDb=[...new Set(state.adminSaved.map(d=>d.store))];
+  return '<div style="min-height:100vh;background:#f5f7f5">'
+  + '<div style="background:#2a7d2e;padding:max(14px,env(safe-area-inset-top)) 18px 14px;display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span style="font-family:\'Playfair Display\',serif;font-size:18px;font-weight:700;color:#fff">TilbudsHaj · Admin</span></div><button id="adminLogout" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">Log ud</button></div>'
+  + '<div style="max-width:660px;margin:0 auto;padding:20px 14px 60px">'
+  + '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:14px">'
+  +   '<div style="font-family:\'Playfair Display\',serif;font-size:17px;font-weight:700;color:#1a1a1a;margin-bottom:3px">Upload tilbudsavis</div>'
+  +   '<div style="font-size:12px;color:#8a9e8a;margin-bottom:16px">AI analyserer avisen og opdaterer alle kunders app automatisk.</div>'
+  +   '<label style="font-size:12px;font-weight:700;color:#5a6e5a;display:block;margin-bottom:6px">Butik</label>'
+  +   '<select id="adminStore" style="width:100%;padding:10px 12px;border:1.5px solid '+(state.adminStore?"#2a7d2e":"#e0e8e0")+';border-radius:10px;font-size:16px;color:'+(state.adminStore?"#1a1a1a":"#8a9e8a")+';background:#fff;outline:none;cursor:pointer;margin-bottom:14px"><option value="">Vælg butik...</option>'+STORE_LIST.map(s=>'<option value="'+s+'"'+(state.adminStore===s?" selected":"")+'>'+s+'</option>').join("")+'</select>'
+  +   '<div style="display:flex;border-radius:10px;overflow:hidden;border:1.5px solid #e0e8e0;margin-bottom:14px"><button id="modeFile" style="flex:1;padding:9px 0;border:none;background:'+(state.adminMode==="file"?"#2a7d2e":"#fff")+';color:'+(state.adminMode==="file"?"#fff":"#8a9e8a")+';font-weight:700;font-size:13px;cursor:pointer">📄 Upload fil</button><button id="modeUrl" style="flex:1;padding:9px 0;border:none;background:'+(state.adminMode==="url"?"#2a7d2e":"#fff")+';color:'+(state.adminMode==="url"?"#fff":"#8a9e8a")+';font-weight:700;font-size:13px;cursor:pointer">🔗 Indsæt link</button></div>'
+  +   (state.adminMode==="file"
+      ? '<div id="fileDrop" style="border:2px dashed '+(state.adminFiles.length?"#2a7d2e":"#e0e8e0")+';border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;background:'+(state.adminFiles.length?"#f0f8f0":"#fafafa")+';margin-bottom:14px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="'+(state.adminFiles.length?"#2a7d2e":"#8a9e8a")+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>'+(state.adminFiles.length===0?'<div style="font-size:13px;color:#8a9e8a;margin-top:8px">Klik for at vælge PDF eller billede</div>':'<div style="font-size:13px;color:#2a7d2e;font-weight:600;margin-top:8px">✓ '+state.adminFiles.map(f=>f.name||f).join(", ")+'</div>')+'<input type="file" id="fileInput" accept=".pdf,image/*" multiple style="display:none"/></div>'
+      : '<div style="margin-bottom:14px"><input id="urlInput" value="'+escHtml(state.adminUrl)+'" placeholder="https://rema1000.dk/tilbud" style="width:100%;padding:11px 14px;border:1.5px solid '+(state.adminUrl?"#2a7d2e":"#e0e8e0")+';border-radius:10px;font-size:16px;outline:none;color:#1a1a1a;background:#fff"/><div style="font-size:11px;color:#8a9e8a;margin-top:6px;line-height:1.5">💡 Find links på etilbudsavis.dk. Tip: Billede-upload er mest pålideligt.</div></div>')
+  +   '<button id="adminAnalyse" style="width:100%;padding:13px;background:'+(state.adminLoading?"#8a9e8a":"#2a7d2e")+';color:#fff;border:none;border-radius:12px;font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;cursor:'+(state.adminLoading?"not-allowed":"pointer")+';display:flex;align-items:center;justify-content:center;gap:10px">'+(state.adminLoading?'<span class="spinner"></span>Analyserer...':(state.adminMode==="url"?"🔗 Hent og analysér":"📄 Analysér og gem"))+'</button>'
+  + '</div>'
+  + '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:14px"><div style="font-family:\'Playfair Display\',serif;font-size:17px;font-weight:700;color:#1a1a1a;margin-bottom:4px">Live tilbud</div><div style="font-size:12px;color:#8a9e8a;margin-bottom:12px">'+(storesInDb.length===0?"Ingen tilbud uploadet endnu — demo-tilbud vises til kunderne.":state.adminSaved.length+" tilbud fra "+storesInDb.length+" butikker vises for alle kunder.")+'</div>'+storesInDb.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0f8f0;border-radius:10px;border:1px solid #2a7d2e22;margin-bottom:8px"><div><span style="font-weight:700;color:#1a1a1a;font-size:14px">'+escHtml(s)+'</span><span style="color:#8a9e8a;font-size:12px;margin-left:8px">'+state.adminSaved.filter(d=>d.store===s).length+' tilbud</span></div><button class="del-store-btn" data-store="'+escHtml(s)+'" style="background:none;border:1px solid #e0e8e0;color:#8a9e8a;padding:4px 10px;border-radius:7px;font-size:11px;cursor:pointer">Slet</button></div>').join("")+'</div>'
+  + (state.adminLog.length>0?'<div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)"><div style="font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:10px">Aktivitetslog</div>'+state.adminLog.map(l=>'<div style="font-size:12px;padding:6px 10px;border-radius:7px;background:'+(l.type==="error"?"#fdecea":l.type==="ok"?"#f0f8f0":"#f5f5f5")+';color:'+(l.type==="error"?"#d42b2b":l.type==="ok"?"#2a7d2e":"#8a9e8a")+';margin-bottom:5px">'+escHtml(l.msg)+'</div>').join("")+'</div>':'')
+  + '</div></div>';
+}
+ 
+function addLog(msg,type){ state.adminLog=[{msg,type:type||"info"}].concat(state.adminLog).slice(0,15); }
+ 
+function stampDeals(items,store){
+  return items.map((d,i)=>({
+    id:store+"-"+Date.now()+"-"+i, store:store,
+    name:d.name||"Ukendt", desc:d.desc||"",
+    price:Number(d.price)||0, origPrice:d.origPrice?Number(d.origPrice):null,
+    unit:d.unit||"", unitPrice:d.unitPrice||"", savings:Number(d.savings)||0,
+    cat:d.cat||"Andet", emoji:d.emoji||"🛒", qty:1
+  }));
+}
+ 
+async function adminSaveDeals(newDeals){
+  const meta={week_num:getWeek(),next_week:getWeek()+1,date_str:dkDate()};
+  await SB.upsertDeals(newDeals,state.adminStore);
+  await SB.upsertMeta(meta);
+  const all=await SB.getDeals();
+  if(all&&all.length>0){ state.adminSaved=all; state.deals=all; state.meta=meta; }
+}
+ 
+async function doAdminFile(){
+  if(!state.adminFiles.length){addLog("Vælg en fil.","error");render();return;}
+  if(!state.adminStore){addLog("Vælg butik.","error");render();return;}
+  state.adminLoading=true;render();
+  let allNew=[];
+  for(const file of state.adminFiles){
+    addLog("Analyserer "+file.name+"...");render();
+    try{
+      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+      const isPdf=file.type==="application/pdf";
+      const text=await callAI([{role:"user",content:[{type:isPdf?"document":"image",source:{type:"base64",media_type:file.type,data:b64}},{type:"text",text:AI_PROMPT(state.adminStore)}]}]);
+      const items=stampDeals(extractJSON(text),state.adminStore);
+      allNew=allNew.concat(items);
+      addLog("✓ "+items.length+" tilbud fundet i "+file.name,"ok");
+    }catch(e){ addLog("Fejl: "+e.message,"error"); }
+  }
+  if(allNew.length){ await adminSaveDeals(allNew); addLog("💾 "+allNew.length+" tilbud fra "+state.adminStore+" er LIVE for alle kunder!","ok"); }
+  state.adminFiles=[]; state.adminLoading=false; render();
+}
+ 
+async function doAdminUrl(){
+  if(!state.adminUrl.trim()){addLog("Indsæt et link.","error");render();return;}
+  if(!state.adminStore){addLog("Vælg butik.","error");render();return;}
+  state.adminLoading=true; addLog("Søger tilbud fra "+state.adminStore+"...");render();
+  try{
+    const body={model:"claude-sonnet-4-20250514",max_tokens:1000,tools:[{type:"web_search_20250305",name:"web_search"}],messages:[{role:"user",content:"Find alle aktuelle tilbud fra \""+state.adminStore+"\" på: "+state.adminUrl.trim()+"\n\n"+AI_PROMPT(state.adminStore)}]};
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error("API fejl "+r.status);
+    const d=await r.json();
+    const text=(d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    if(!text.trim())throw new Error("Linket kunne ikke læses. Upload avisen som billede i stedet.");
+    const items=stampDeals(extractJSON(text),state.adminStore);
+    await adminSaveDeals(items);
+    addLog("✓ "+items.length+" tilbud fra "+state.adminStore+" er LIVE!","ok");
+    state.adminUrl="";
+  }catch(e){ addLog("Fejl: "+e.message,"error"); }
+  state.adminLoading=false; render();
+}
+ 
+function bindAdmin(){
+  const logout=document.getElementById("adminLogout");
+  if(logout)logout.onclick=()=>{sessionStorage.removeItem("th_admin");state.page="customer";render();};
+  const storeSelect=document.getElementById("adminStore");
+  if(storeSelect)storeSelect.onchange=e=>{state.adminStore=e.target.value;render();};
+  const modeFile=document.getElementById("modeFile");
+  if(modeFile)modeFile.onclick=()=>{state.adminMode="file";render();};
+  const modeUrl=document.getElementById("modeUrl");
+  if(modeUrl)modeUrl.onclick=()=>{state.adminMode="url";render();};
+  const fileDrop=document.getElementById("fileDrop");
+  const fileInput=document.getElementById("fileInput");
+  if(fileDrop&&fileInput){ fileDrop.onclick=()=>fileInput.click(); fileInput.onchange=e=>{state.adminFiles=Array.from(e.target.files);render();}; }
+  const urlInput=document.getElementById("urlInput");
+  if(urlInput)urlInput.oninput=e=>{state.adminUrl=e.target.value;};
+  const analyse=document.getElementById("adminAnalyse");
+  if(analyse)analyse.onclick=()=>{ if(!state.adminLoading){ state.adminMode==="url"?doAdminUrl():doAdminFile(); } };
+  document.querySelectorAll(".del-store-btn").forEach(btn=>{
+    btn.onclick=async()=>{
+      await SB.deleteStore(btn.dataset.store);
+      const all=await SB.getDeals();
+      state.adminSaved=all||[];
+      state.deals=all&&all.length>0?all:DEMO;
+      addLog(btn.dataset.store+" slettet.");
+      render();
+    };
+  });
+}
+ 
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+async function init(){
+  state.loading=true; render();
+  try{
+    const results=await Promise.all([SB.getDeals(),SB.getMeta()]);
+    const deals=results[0], meta=results[1];
+    state.deals=(deals&&deals.length>0)?deals:DEMO;
+    state.meta=meta;
+    state.adminSaved=(deals&&deals.length>0)?deals:[];
+  }catch(e){ state.deals=DEMO; }
+  state.loading=false; render();
+}
+init();
+</script>
+</body>
+</html>
+bash
+
+cat >> /mnt/user-data/outputs/index.html << 'PARTEOF'
 
 <script>
 // ════════════════════════════════════════════════════════════════
@@ -676,339 +1015,5 @@ init();
 </script>
 </body>
 </html>
-
-<script>
-// ════════════════════════════════════════════════════════════════
-// BIND CUSTOMER
-// ════════════════════════════════════════════════════════════════
-let searchTimer=null, logoClicks=0, logoTimer=null;
-
-function bindCustomer(){
-  const logoBtn=document.getElementById("logoBtn");
-  if(logoBtn){
-    logoBtn.onclick=()=>{
-      logoClicks++;
-      clearTimeout(logoTimer);
-      logoTimer=setTimeout(()=>{logoClicks=0;},2000);
-      if(logoClicks>=ADMIN_TAP_COUNT){
-        logoClicks=0; clearTimeout(logoTimer);
-        state.page=isAdminLoggedIn()?"admin":"admin-login";
-        render();
-      }
-    };
-  }
-  const si=document.getElementById("searchInput");
-  if(si){
-    si.addEventListener("input",e=>{
-      state.input=e.target.value;
-      clearTimeout(searchTimer);
-      if(!state.input){state.search="";state.suggs=[];render();placeCaret();return;}
-      searchTimer=setTimeout(()=>{
-        state.search=state.input;
-        const toks=state.input.toLowerCase().trim().split(/\s+/).filter(t=>t.length>1);
-        const seen=new Set(),res=[];
-        for(const d of state.deals){
-          if(scoreSearch(d,toks)>0){
-            const lbl=d.name.split(" ").slice(0,3).join(" ");
-            if(!seen.has(lbl)){seen.add(lbl);res.push({label:lbl,store:d.store});}
-            if(res.length>=5)break;
-          }
-        }
-        state.suggs=res; render(); placeCaret();
-      },180);
-    });
-    si.addEventListener("keydown",e=>{ if(e.key==="Escape"){state.input="";state.search="";state.suggs=[];render();} });
-  }
-  function placeCaret(){
-    const el=document.getElementById("searchInput");
-    if(el){ el.focus(); const v=el.value; el.value=""; el.value=v; }
-  }
-  const sc=document.getElementById("searchClear");
-  if(sc)sc.onclick=()=>{state.input="";state.search="";state.suggs=[];render();};
-  document.querySelectorAll(".sugg-item").forEach(el=>{
-    el.onmousedown=()=>{state.input=el.dataset.label;state.search=el.dataset.label;state.suggs=[];render();};
-  });
-  document.querySelectorAll("[data-store]").forEach(el=>{ el.onclick=()=>{state.store=el.dataset.store;render();}; });
-  document.querySelectorAll("[data-cat]").forEach(el=>{ el.onclick=()=>{state.cat=el.dataset.cat;render();}; });
-  const ss=document.getElementById("sortSelect");
-  if(ss)ss.onchange=e=>{state.sort=e.target.value;render();};
-  document.querySelectorAll("[data-delta]").forEach(btn=>{ btn.onclick=()=>cartUpdate(btn.dataset.id,parseInt(btn.dataset.delta)); });
-  const cartBtn=document.getElementById("cartBtn");
-  if(cartBtn)cartBtn.onclick=()=>{state.cartOpen=true;render();};
-  const cartOverlay=document.getElementById("cartOverlay");
-  if(cartOverlay)cartOverlay.onclick=()=>{state.cartOpen=false;render();};
-  const cartClose=document.getElementById("cartClose");
-  if(cartClose)cartClose.onclick=()=>{state.cartOpen=false;render();};
-  const cartClear=document.getElementById("cartClear");
-  if(cartClear)cartClear.onclick=()=>{state.cart=[];render();};
-  document.querySelectorAll("[data-cart-id]").forEach(btn=>{ btn.onclick=()=>cartUpdate(btn.dataset.cartId,parseInt(btn.dataset.cartDelta)); });
-  document.querySelectorAll("[data-cart-remove]").forEach(btn=>{ btn.onclick=()=>{state.cart=state.cart.filter(d=>d.id!==btn.dataset.cartRemove);render();}; });
-  const mealBtn=document.getElementById("mealBtn");
-  if(mealBtn)mealBtn.onclick=()=>{state.page="meals";render();};
-  bindAdBanner();
-}
-
-function cartUpdate(id,delta){
-  const ex=state.cart.find(d=>d.id===id);
-  if(!ex){
-    if(delta>0){ const deal=state.deals.find(d=>d.id===id); if(deal)state.cart.push(Object.assign({},deal,{qty:1})); }
-  }else{
-    const q=ex.qty+delta;
-    if(q<=0)state.cart=state.cart.filter(d=>d.id!==id);
-    else state.cart=state.cart.map(d=>d.id===id?Object.assign({},d,{qty:q}):d);
-  }
-  render();
-}
-
-function bindAdBanner(){
-  const el=document.getElementById("adScroll");
-  if(!el)return;
-  let drag=false,sx=0,sl=0;
-  el.onmousedown=e=>{drag=true;sx=e.clientX;sl=el.scrollLeft;};
-  el.onmousemove=e=>{if(drag)el.scrollLeft=sl-(e.clientX-sx);};
-  el.onmouseup=()=>{drag=false;};
-  el.onmouseleave=()=>{drag=false;};
-  el.ontouchstart=e=>{sx=e.touches[0].clientX;sl=el.scrollLeft;};
-  el.ontouchmove=e=>{el.scrollLeft=sl-(e.touches[0].clientX-sx);};
-}
-
-// ════════════════════════════════════════════════════════════════
-// UGENS RETTER
-// ════════════════════════════════════════════════════════════════
-const FB_MEALS=[
-  {title:"Kylling i flødesauce",emoji:"🍗",desc:"Saftig kylling med champignon og fløde",time:"30 min",portions:4,totalPrice:65,ingredients:[{name:"Kyllingefilet",amount:"400 g",store:"Rema 1000",price:20,onSale:true},{name:"Champignon",amount:"250 g",store:"Lidl",price:13,onSale:true},{name:"Fløde",amount:"2 dl",store:null,price:9,onSale:false},{name:"Smør",amount:"50 g",store:"Netto",price:6,onSale:true}],steps:["Skær kyllingen i tern og krydr med salt og peber.","Brun kyllingen i smør 5 min ved høj varme.","Tilsæt champignon og steg 3 min.","Hæld fløde i og lad simre 10 min. Server med pasta."]},
-  {title:"Spaghetti Bolognese",emoji:"🍝",desc:"Klassisk pastaret med hakket oksekød",time:"35 min",portions:4,totalPrice:52,ingredients:[{name:"Hakket Oksekød",amount:"500 g",store:"Rema 1000",price:25,onSale:true},{name:"Spaghetti",amount:"400 g",store:null,price:8,onSale:false},{name:"Hakkede Tomater",amount:"1 dåse",store:null,price:7,onSale:false}],steps:["Hak løg og svits i olie.","Brun hakket kød og krydr.","Tilsæt tomater og lad simre 20 min.","Kog spaghetti og server med saucen."]},
-  {title:"Laks med bagte kartofler",emoji:"🐟",desc:"Sund middagsret med norsk laks",time:"40 min",portions:2,totalPrice:58,ingredients:[{name:"Laksesteak",amount:"300 g",store:"Lidl",price:29.95,onSale:true},{name:"Kartofler",amount:"600 g",store:null,price:8,onSale:false}],steps:["Skær kartofler i både og bag 200° i 30 min.","Krydr laks med salt og peber.","Steg laks 3-4 min på hver side."]},
-  {title:"Ostomelet",emoji:"🧀",desc:"Hurtig og billig hverdagsaftensmad",time:"15 min",portions:2,totalPrice:32,ingredients:[{name:"Frilandsæg",amount:"4 stk",store:"Netto",price:8,onSale:true},{name:"Danbo Ost",amount:"100 g",store:"SuperBrugsen",price:5,onSale:true}],steps:["Pisk æg med salt og peber.","Smelt smør på pande.","Hæld æg i, drys ost over og fold."]},
-  {title:"Hjemmelavet burger",emoji:"🍔",desc:"Saftig burger med dansk oksekød",time:"25 min",portions:4,totalPrice:78,ingredients:[{name:"Hakket Oksekød",amount:"500 g",store:"Rema 1000",price:25,onSale:true},{name:"Burgerboller",amount:"4 stk",store:null,price:14,onSale:false}],steps:["Form 4 bøffer og krydr.","Steg 3-4 min på hver side.","Saml burger og server."]}
-];
-
-function cheapestStore(meal){
-  const t={};
-  for(const i of meal.ingredients)if(i.onSale&&i.store)t[i.store]=(t[i.store]||0)+(i.price||0);
-  const e=Object.entries(t);
-  return e.length?e.sort((a,b)=>a[1]-b[1])[0][0]:null;
-}
-function storeCost(meal,s){ return meal.ingredients.filter(i=>i.store===s).reduce((sum,i)=>sum+(i.price||0),0); }
-
-async function generateMeals(){
-  state.mealsLoading=true; state.meals=[]; state.mealSelected=null; state.mealMode=null; render();
-  const src=state.deals.length>0?state.deals:DEMO;
-  const summary=src.slice(0,50).map(d=>d.name+" ("+d.store+", "+d.price+" kr, "+(d.unit||"")+")").join("\n");
-  try{
-    const text=await callAI([{role:"user",content:"Lav 5 billige hverdagsretter baseret på disse tilbud:\n"+summary+"\n\nSvar KUN med JSON array, ingen backticks:\n[{\"title\":\"Navn\",\"emoji\":\"🍗\",\"desc\":\"1 sætning\",\"time\":\"30 min\",\"portions\":4,\"totalPrice\":65,\"ingredients\":[{\"name\":\"Kyllingefilet\",\"amount\":\"400 g\",\"store\":\"Rema 1000\",\"price\":20,\"onSale\":true},{\"name\":\"Fløde\",\"amount\":\"2 dl\",\"store\":null,\"price\":9,\"onSale\":false}],\"steps\":[\"Trin 1\",\"Trin 2\"]}]"}]);
-    state.meals=extractJSON(text);
-  }catch(e){ state.meals=FB_MEALS; }
-  state.mealsLoading=false; render();
-}
-
-function renderMeals(){
-  if(state.mealSelected)return renderMealDetail();
-  return '<div style="position:fixed;inset:0;background:#fff;display:flex;flex-direction:column">'
-  + '<div style="background:#fff;border-bottom:1px solid #e0e8e0;padding:max(12px,env(safe-area-inset-top)) 14px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 8px rgba(0,0,0,0.05)"><div style="display:flex;align-items:center;gap:10px"><button id="mealsBack" style="width:36px;height:36px;border-radius:9px;background:#f0f8f0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px">←</button><div><div style="font-family:\'Playfair Display\',serif;font-size:19px;font-weight:700;color:#2a7d2e;line-height:1">Ugens Retter</div><div style="font-size:10px;color:#8a9e8a">AI-forslag baseret på ugens tilbud</div></div></div><button id="mealsGen" style="background:'+(state.mealsLoading?"#8a9e8a":"#2a7d2e")+';border:none;border-radius:10px;padding:8px 14px;color:#fff;font-size:12px;font-weight:700;cursor:'+(state.mealsLoading?"not-allowed":"pointer")+';display:flex;align-items:center;gap:7px">'+(state.mealsLoading?'<span class="spinner"></span>Laver...':'🔄 Forny')+'</button></div>'
-  + '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px 20px">'
-  + (state.mealsLoading
-      ? '<div style="text-align:center;padding:60px 20px"><div class="spinner dark" style="width:40px;height:40px;margin:0 auto 18px"></div><div style="font-family:\'Playfair Display\',serif;font-size:18px;color:#1a1a1a">AI finder ugens bedste retter...</div></div>'
-      : state.meals.length===0
-        ? '<div style="text-align:center;padding:50px 20px"><div style="font-size:52px;margin-bottom:14px">👨‍🍳</div><div style="font-family:\'Playfair Display\',serif;font-size:21px;font-weight:700;color:#1a1a1a;margin-bottom:8px">Find ugens middagsretter</div><div style="font-size:13px;color:#8a9e8a;max-width:270px;margin:0 auto 22px;line-height:1.6">AI\'en finder 5 lækre retter baseret på ugens tilbud og beregner den billigste indkøbsrute.</div><button id="mealsStart" style="background:#2a7d2e;border:none;border-radius:12px;padding:13px 28px;color:#fff;font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;cursor:pointer">👨‍🍳 Find ugens retter</button></div>'
-        : '<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">'+state.meals.map((meal,i)=>'<div class="meal-card" data-meal="'+i+'" style="background:#fff;border-radius:12px;border:3px solid #2a7d2e;box-shadow:0 4px 14px rgba(42,125,46,0.1);cursor:pointer;overflow:hidden;animation:fadeUp .3s ease both;animation-delay:'+(i*.07)+'s"><div style="background:#f0f8f0;padding:16px 12px 10px;text-align:center;border-bottom:1px solid #e0e8e0"><div style="font-size:34px;margin-bottom:6px">'+meal.emoji+'</div><div style="font-family:\'Playfair Display\',serif;font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.3">'+escHtml(meal.title)+'</div></div><div style="padding:9px 11px 11px"><div style="font-size:11px;color:#8a9e8a;margin-bottom:7px;line-height:1.4">'+escHtml(meal.desc)+'</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:#8a9e8a">⏱ '+meal.time+'</span><span style="font-family:\'Playfair Display\',serif;font-size:14px;font-weight:700;color:#2a7d2e">~'+meal.totalPrice+',-</span></div></div></div>').join("")+'</div>')
-  + '</div></div>';
-}
-
-function renderMealDetail(){
-  const meal=state.mealSelected;
-  const target=state.mealMode==="cheapest"?cheapestStore(meal):state.mealMode;
-  const mStores=[...new Set(meal.ingredients.filter(i=>i.onSale&&i.store).map(i=>i.store))];
-  return '<div style="position:fixed;inset:0;background:#fff;display:flex;flex-direction:column">'
-  + '<div style="background:#fff;border-bottom:1px solid #e0e8e0;padding:max(12px,env(safe-area-inset-top)) 14px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 8px rgba(0,0,0,0.05)"><div style="display:flex;align-items:center;gap:10px"><button id="mealDetailBack" style="width:36px;height:36px;border-radius:9px;background:#f0f8f0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px">←</button><div><div style="font-family:\'Playfair Display\',serif;font-size:17px;font-weight:700;color:#2a7d2e;line-height:1">'+escHtml(meal.title)+'</div><div style="font-size:10px;color:#8a9e8a">⏱ '+meal.time+' · 👥 '+meal.portions+' pers.</div></div></div><span style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:#2a7d2e">~'+meal.totalPrice+',-</span></div>'
-  + '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px 20px">'
-  + '<div style="margin-bottom:14px"><div style="font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:8px">Hvor vil du handle?</div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="mode-btn" data-mode="cheapest" style="padding:7px 14px;border-radius:20px;border:2px solid '+(state.mealMode==="cheapest"?"#2a7d2e":"#e0e8e0")+';background:'+(state.mealMode==="cheapest"?"#2a7d2e":"#fff")+';color:'+(state.mealMode==="cheapest"?"#fff":"#1a1a1a")+';font-size:12px;font-weight:700;cursor:pointer">💰 Billigste butik</button>'+mStores.map(s=>'<button class="mode-btn" data-mode="'+escHtml(s)+'" style="padding:7px 14px;border-radius:20px;border:2px solid '+(state.mealMode===s?"#2a7d2e":"#e0e8e0")+';background:'+(state.mealMode===s?"#f0f8f0":"#fff")+';color:'+(state.mealMode===s?"#2a7d2e":"#8a9e8a")+';font-size:12px;font-weight:700;cursor:pointer">'+escHtml(s)+(state.mealMode===s?" ("+storeCost(meal,s).toFixed(0)+" kr)":"")+'</button>').join("")+'</div>'+(state.mealMode==="cheapest"&&cheapestStore(meal)?'<div style="margin-top:7px;font-size:12px;color:#2a7d2e;font-style:italic">✓ Billigst: '+cheapestStore(meal)+' ('+storeCost(meal,cheapestStore(meal)).toFixed(0)+' kr)</div>':'')+'</div>'
-  + '<div style="background:#fff;border-radius:12px;border:1.5px solid #e0e8e0;margin-bottom:12px;overflow:hidden"><div style="padding:10px 14px;border-bottom:1px solid #e0e8e0;font-family:\'Playfair Display\',serif;font-size:14px;font-weight:700;color:#1a1a1a">Ingredienser</div>'+meal.ingredients.map((ing,i,arr)=>{const isHL=ing.onSale&&(target?ing.store===target:true);return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:'+(i<arr.length-1?"1px solid #e0e8e0":"none")+';background:'+(isHL?"#f0f8f0":"#fff")+'"><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#1a1a1a;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+escHtml(ing.name)+(ing.onSale?'<span style="font-size:9px;background:#f0c000;color:#5a4000;padding:1px 6px;border-radius:8px;font-weight:700">TILBUD</span>':'')+'</div><div style="font-size:10px;color:#8a9e8a">'+escHtml(ing.amount)+(ing.store?" · "+escHtml(ing.store):"")+'</div></div><div style="font-size:13px;font-weight:700;color:'+(ing.onSale?"#2a7d2e":"#8a9e8a")+';flex-shrink:0">'+(ing.price?ing.price+" kr":"~")+'</div></div>';}).join("")+'</div>'
-  + '<div style="background:#fff;border-radius:12px;border:1.5px solid #e0e8e0;margin-bottom:14px;overflow:hidden"><div style="padding:10px 14px;border-bottom:1px solid #e0e8e0;font-family:\'Playfair Display\',serif;font-size:14px;font-weight:700;color:#1a1a1a">Fremgangsmåde</div>'+meal.steps.map((step,i,arr)=>'<div style="display:flex;gap:12px;padding:10px 14px;border-bottom:'+(i<arr.length-1?"1px solid #e0e8e0":"none")+'"><div style="width:24px;height:24px;border-radius:50%;background:#2a7d2e;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">'+(i+1)+'</div><div style="font-size:13px;color:#1a1a1a;line-height:1.55;padding-top:3px">'+escHtml(step)+'</div></div>').join("")+'</div>'
-  + '<button id="addMealToCart"'+(!state.mealMode?" disabled":"")+' style="width:100%;padding:13px;background:'+(state.mealMode?"#2a7d2e":"#ccc")+';color:#fff;border:none;border-radius:12px;font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;cursor:'+(state.mealMode?"pointer":"not-allowed")+'">'+(state.mealMode?"🛒 Tilføj tilbudsvarer til kurven":"Vælg en butik ovenfor")+'</button>'
-  + '</div></div>';
-}
-
-function bindMeals(){
-  const back=document.getElementById("mealsBack");
-  if(back)back.onclick=()=>{state.page="customer";render();};
-  const gen=document.getElementById("mealsGen");
-  if(gen)gen.onclick=()=>{if(!state.mealsLoading)generateMeals();};
-  const start=document.getElementById("mealsStart");
-  if(start)start.onclick=()=>generateMeals();
-  document.querySelectorAll("[data-meal]").forEach(el=>{ el.onclick=()=>{state.mealSelected=state.meals[parseInt(el.dataset.meal)];state.mealMode=null;render();}; });
-  const detailBack=document.getElementById("mealDetailBack");
-  if(detailBack)detailBack.onclick=()=>{state.mealSelected=null;state.mealMode=null;render();};
-  document.querySelectorAll(".mode-btn").forEach(btn=>{ btn.onclick=()=>{state.mealMode=btn.dataset.mode;render();}; });
-  const addBtn=document.getElementById("addMealToCart");
-  if(addBtn)addBtn.onclick=()=>{
-    if(!state.mealMode)return;
-    const meal=state.mealSelected;
-    const target=state.mealMode==="cheapest"?cheapestStore(meal):state.mealMode;
-    const items=meal.ingredients.filter(ing=>target?(ing.onSale&&ing.store===target):ing.onSale).map(ing=>({id:"m-"+ing.name+"-"+Date.now()+"-"+Math.random().toString(36).slice(2),name:ing.name,store:ing.store||"Ukendt",price:ing.price||0,unit:ing.amount||"",emoji:"🛒",cat:"Andet",savings:0,qty:1}));
-    for(const item of items){
-      const ex=state.cart.find(d=>d.id===item.id);
-      if(ex)state.cart=state.cart.map(d=>d.id===item.id?Object.assign({},d,{qty:d.qty+1}):d);
-      else state.cart.push(item);
-    }
-    state.page="customer"; state.mealSelected=null; state.mealMode=null; state.cartOpen=true; render();
-  };
-}
-
-// ════════════════════════════════════════════════════════════════
-// ADMIN LOGIN
-// ════════════════════════════════════════════════════════════════
-function renderAdminLogin(){
-  return '<div style="min-height:100vh;background:#f5f7f5;display:flex;align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:20px;padding:34px 26px;width:100%;max-width:350px;box-shadow:0 8px 40px rgba(0,0,0,0.12)">'
-  + '<div style="text-align:center;margin-bottom:24px"><div style="width:50px;height:50px;border-radius:12px;border:2px solid #2a7d2e;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#2a7d2e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div style="font-family:\'Playfair Display\',serif;font-size:22px;font-weight:700;color:#2a7d2e">TilbudsHaj</div><div style="font-size:11px;color:#8a9e8a;margin-top:3px;letter-spacing:1.5px;text-transform:uppercase">Admin Panel</div></div>'
-  + '<label style="font-size:12px;font-weight:700;color:#5a6e5a;display:block;margin-bottom:6px">Adgangskode</label>'
-  + '<div style="position:relative;margin-bottom:14px"><input type="password" id="loginPw" placeholder="Din adgangskode..." style="width:100%;padding:11px 44px 11px 14px;border:1.5px solid #e0e8e0;border-radius:10px;font-size:16px;outline:none;color:#1a1a1a"/><button id="togglePw" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8a9e8a;font-size:14px;padding:4px">👁</button></div>'
-  + '<div id="loginErr" style="font-size:12px;color:#d42b2b;margin-bottom:12px;display:none"></div>'
-  + '<button id="loginBtn" style="width:100%;padding:12px;background:#2a7d2e;color:#fff;border:none;border-radius:12px;font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;cursor:pointer">Log ind</button>'
-  + '<div style="text-align:center;margin-top:14px;font-size:11px;color:#8a9e8a">Kun for administratorer</div>'
-  + '</div></div>';
-}
-
-function bindAdminLogin(){
-  const pw=document.getElementById("loginPw");
-  const btn=document.getElementById("loginBtn");
-  const err=document.getElementById("loginErr");
-  const toggle=document.getElementById("togglePw");
-  if(toggle)toggle.onclick=()=>{ pw.type=pw.type==="password"?"text":"password"; toggle.textContent=pw.type==="password"?"👁":"🙈"; };
-  const doLogin=()=>{
-    if(pw.value===ADMIN_PW){ sessionStorage.setItem("th_admin","1"); state.page="admin"; render(); }
-    else{ err.textContent="Forkert adgangskode. Prøv igen."; err.style.display="block"; pw.value=""; }
-  };
-  if(btn)btn.onclick=doLogin;
-  if(pw)pw.addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
-}
-
-// ════════════════════════════════════════════════════════════════
-// ADMIN PANEL
-// ════════════════════════════════════════════════════════════════
-function renderAdmin(){
-  const storesInDb=[...new Set(state.adminSaved.map(d=>d.store))];
-  return '<div style="min-height:100vh;background:#f5f7f5">'
-  + '<div style="background:#2a7d2e;padding:max(14px,env(safe-area-inset-top)) 18px 14px;display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span style="font-family:\'Playfair Display\',serif;font-size:18px;font-weight:700;color:#fff">TilbudsHaj · Admin</span></div><button id="adminLogout" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">Log ud</button></div>'
-  + '<div style="max-width:660px;margin:0 auto;padding:20px 14px 60px">'
-  + '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:14px">'
-  +   '<div style="font-family:\'Playfair Display\',serif;font-size:17px;font-weight:700;color:#1a1a1a;margin-bottom:3px">Upload tilbudsavis</div>'
-  +   '<div style="font-size:12px;color:#8a9e8a;margin-bottom:16px">AI analyserer avisen og opdaterer alle kunders app automatisk.</div>'
-  +   '<label style="font-size:12px;font-weight:700;color:#5a6e5a;display:block;margin-bottom:6px">Butik</label>'
-  +   '<select id="adminStore" style="width:100%;padding:10px 12px;border:1.5px solid '+(state.adminStore?"#2a7d2e":"#e0e8e0")+';border-radius:10px;font-size:16px;color:'+(state.adminStore?"#1a1a1a":"#8a9e8a")+';background:#fff;outline:none;cursor:pointer;margin-bottom:14px"><option value="">Vælg butik...</option>'+STORE_LIST.map(s=>'<option value="'+s+'"'+(state.adminStore===s?" selected":"")+'>'+s+'</option>').join("")+'</select>'
-  +   '<div style="display:flex;border-radius:10px;overflow:hidden;border:1.5px solid #e0e8e0;margin-bottom:14px"><button id="modeFile" style="flex:1;padding:9px 0;border:none;background:'+(state.adminMode==="file"?"#2a7d2e":"#fff")+';color:'+(state.adminMode==="file"?"#fff":"#8a9e8a")+';font-weight:700;font-size:13px;cursor:pointer">📄 Upload fil</button><button id="modeUrl" style="flex:1;padding:9px 0;border:none;background:'+(state.adminMode==="url"?"#2a7d2e":"#fff")+';color:'+(state.adminMode==="url"?"#fff":"#8a9e8a")+';font-weight:700;font-size:13px;cursor:pointer">🔗 Indsæt link</button></div>'
-  +   (state.adminMode==="file"
-      ? '<div id="fileDrop" style="border:2px dashed '+(state.adminFiles.length?"#2a7d2e":"#e0e8e0")+';border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;background:'+(state.adminFiles.length?"#f0f8f0":"#fafafa")+';margin-bottom:14px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="'+(state.adminFiles.length?"#2a7d2e":"#8a9e8a")+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>'+(state.adminFiles.length===0?'<div style="font-size:13px;color:#8a9e8a;margin-top:8px">Klik for at vælge PDF eller billede</div>':'<div style="font-size:13px;color:#2a7d2e;font-weight:600;margin-top:8px">✓ '+state.adminFiles.map(f=>f.name||f).join(", ")+'</div>')+'<input type="file" id="fileInput" accept=".pdf,image/*" multiple style="display:none"/></div>'
-      : '<div style="margin-bottom:14px"><input id="urlInput" value="'+escHtml(state.adminUrl)+'" placeholder="https://rema1000.dk/tilbud" style="width:100%;padding:11px 14px;border:1.5px solid '+(state.adminUrl?"#2a7d2e":"#e0e8e0")+';border-radius:10px;font-size:16px;outline:none;color:#1a1a1a;background:#fff"/><div style="font-size:11px;color:#8a9e8a;margin-top:6px;line-height:1.5">💡 Find links på etilbudsavis.dk. Tip: Billede-upload er mest pålideligt.</div></div>')
-  +   '<button id="adminAnalyse" style="width:100%;padding:13px;background:'+(state.adminLoading?"#8a9e8a":"#2a7d2e")+';color:#fff;border:none;border-radius:12px;font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;cursor:'+(state.adminLoading?"not-allowed":"pointer")+';display:flex;align-items:center;justify-content:center;gap:10px">'+(state.adminLoading?'<span class="spinner"></span>Analyserer...':(state.adminMode==="url"?"🔗 Hent og analysér":"📄 Analysér og gem"))+'</button>'
-  + '</div>'
-  + '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:14px"><div style="font-family:\'Playfair Display\',serif;font-size:17px;font-weight:700;color:#1a1a1a;margin-bottom:4px">Live tilbud</div><div style="font-size:12px;color:#8a9e8a;margin-bottom:12px">'+(storesInDb.length===0?"Ingen tilbud uploadet endnu — demo-tilbud vises til kunderne.":state.adminSaved.length+" tilbud fra "+storesInDb.length+" butikker vises for alle kunder.")+'</div>'+storesInDb.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0f8f0;border-radius:10px;border:1px solid #2a7d2e22;margin-bottom:8px"><div><span style="font-weight:700;color:#1a1a1a;font-size:14px">'+escHtml(s)+'</span><span style="color:#8a9e8a;font-size:12px;margin-left:8px">'+state.adminSaved.filter(d=>d.store===s).length+' tilbud</span></div><button class="del-store-btn" data-store="'+escHtml(s)+'" style="background:none;border:1px solid #e0e8e0;color:#8a9e8a;padding:4px 10px;border-radius:7px;font-size:11px;cursor:pointer">Slet</button></div>').join("")+'</div>'
-  + (state.adminLog.length>0?'<div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)"><div style="font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:10px">Aktivitetslog</div>'+state.adminLog.map(l=>'<div style="font-size:12px;padding:6px 10px;border-radius:7px;background:'+(l.type==="error"?"#fdecea":l.type==="ok"?"#f0f8f0":"#f5f5f5")+';color:'+(l.type==="error"?"#d42b2b":l.type==="ok"?"#2a7d2e":"#8a9e8a")+';margin-bottom:5px">'+escHtml(l.msg)+'</div>').join("")+'</div>':'')
-  + '</div></div>';
-}
-
-function addLog(msg,type){ state.adminLog=[{msg,type:type||"info"}].concat(state.adminLog).slice(0,15); }
-
-function stampDeals(items,store){
-  return items.map((d,i)=>({
-    id:store+"-"+Date.now()+"-"+i, store:store,
-    name:d.name||"Ukendt", desc:d.desc||"",
-    price:Number(d.price)||0, origPrice:d.origPrice?Number(d.origPrice):null,
-    unit:d.unit||"", unitPrice:d.unitPrice||"", savings:Number(d.savings)||0,
-    cat:d.cat||"Andet", emoji:d.emoji||"🛒", qty:1
-  }));
-}
-
-async function adminSaveDeals(newDeals){
-  const meta={week_num:getWeek(),next_week:getWeek()+1,date_str:dkDate()};
-  await SB.upsertDeals(newDeals,state.adminStore);
-  await SB.upsertMeta(meta);
-  const all=await SB.getDeals();
-  if(all&&all.length>0){ state.adminSaved=all; state.deals=all; state.meta=meta; }
-}
-
-async function doAdminFile(){
-  if(!state.adminFiles.length){addLog("Vælg en fil.","error");render();return;}
-  if(!state.adminStore){addLog("Vælg butik.","error");render();return;}
-  state.adminLoading=true;render();
-  let allNew=[];
-  for(const file of state.adminFiles){
-    addLog("Analyserer "+file.name+"...");render();
-    try{
-      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
-      const isPdf=file.type==="application/pdf";
-      const text=await callAI([{role:"user",content:[{type:isPdf?"document":"image",source:{type:"base64",media_type:file.type,data:b64}},{type:"text",text:AI_PROMPT(state.adminStore)}]}]);
-      const items=stampDeals(extractJSON(text),state.adminStore);
-      allNew=allNew.concat(items);
-      addLog("✓ "+items.length+" tilbud fundet i "+file.name,"ok");
-    }catch(e){ addLog("Fejl: "+e.message,"error"); }
-  }
-  if(allNew.length){ await adminSaveDeals(allNew); addLog("💾 "+allNew.length+" tilbud fra "+state.adminStore+" er LIVE for alle kunder!","ok"); }
-  state.adminFiles=[]; state.adminLoading=false; render();
-}
-
-async function doAdminUrl(){
-  if(!state.adminUrl.trim()){addLog("Indsæt et link.","error");render();return;}
-  if(!state.adminStore){addLog("Vælg butik.","error");render();return;}
-  state.adminLoading=true; addLog("Søger tilbud fra "+state.adminStore+"...");render();
-  try{
-    const body={model:"claude-sonnet-4-20250514",max_tokens:1000,tools:[{type:"web_search_20250305",name:"web_search"}],messages:[{role:"user",content:"Find alle aktuelle tilbud fra \""+state.adminStore+"\" på: "+state.adminUrl.trim()+"\n\n"+AI_PROMPT(state.adminStore)}]};
-    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-    if(!r.ok)throw new Error("API fejl "+r.status);
-    const d=await r.json();
-    const text=(d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
-    if(!text.trim())throw new Error("Linket kunne ikke læses. Upload avisen som billede i stedet.");
-    const items=stampDeals(extractJSON(text),state.adminStore);
-    await adminSaveDeals(items);
-    addLog("✓ "+items.length+" tilbud fra "+state.adminStore+" er LIVE!","ok");
-    state.adminUrl="";
-  }catch(e){ addLog("Fejl: "+e.message,"error"); }
-  state.adminLoading=false; render();
-}
-
-function bindAdmin(){
-  const logout=document.getElementById("adminLogout");
-  if(logout)logout.onclick=()=>{sessionStorage.removeItem("th_admin");state.page="customer";render();};
-  const storeSelect=document.getElementById("adminStore");
-  if(storeSelect)storeSelect.onchange=e=>{state.adminStore=e.target.value;render();};
-  const modeFile=document.getElementById("modeFile");
-  if(modeFile)modeFile.onclick=()=>{state.adminMode="file";render();};
-  const modeUrl=document.getElementById("modeUrl");
-  if(modeUrl)modeUrl.onclick=()=>{state.adminMode="url";render();};
-  const fileDrop=document.getElementById("fileDrop");
-  const fileInput=document.getElementById("fileInput");
-  if(fileDrop&&fileInput){ fileDrop.onclick=()=>fileInput.click(); fileInput.onchange=e=>{state.adminFiles=Array.from(e.target.files);render();}; }
-  const urlInput=document.getElementById("urlInput");
-  if(urlInput)urlInput.oninput=e=>{state.adminUrl=e.target.value;};
-  const analyse=document.getElementById("adminAnalyse");
-  if(analyse)analyse.onclick=()=>{ if(!state.adminLoading){ state.adminMode==="url"?doAdminUrl():doAdminFile(); } };
-  document.querySelectorAll(".del-store-btn").forEach(btn=>{
-    btn.onclick=async()=>{
-      await SB.deleteStore(btn.dataset.store);
-      const all=await SB.getDeals();
-      state.adminSaved=all||[];
-      state.deals=all&&all.length>0?all:DEMO;
-      addLog(btn.dataset.store+" slettet.");
-      render();
-    };
-  });
-}
-
-// ════════════════════════════════════════════════════════════════
-// INIT
-// ════════════════════════════════════════════════════════════════
-async function init(){
-  state.loading=true; render();
-  try{
-    const results=await Promise.all([SB.getDeals(),SB.getMeta()]);
-    const deals=results[0], meta=results[1];
-    state.deals=(deals&&deals.length>0)?deals:DEMO;
-    state.meta=meta;
-    state.adminSaved=(deals&&deals.length>0)?deals:[];
-  }catch(e){ state.deals=DEMO; }
-  state.loading=false; render();
-}
-init();
-</script>
-</body>
-</html>
+PARTEOF
+echo "Tilføjet. I alt: $(wc -l < /mnt/user-data/outputs/index.html) linjer"
